@@ -1,0 +1,126 @@
+import { NodeManager } from './node-manager';
+import { WebSocketHub } from './websocket-hub';
+import { ApiServer } from './api';
+import { DatabaseManager } from './database';
+
+export interface ServerConfig {
+  websocket: {
+    port: number;
+    path: string;
+    maxConnections: number;
+  };
+  api?: {
+    port: number;
+    host: string;
+  };
+  database?: {
+    type: 'sqlite' | 'postgresql';
+    path?: string;
+    url?: string;
+  };
+  auth?: {
+    enabled: boolean;
+    tokens: string[];
+  };
+}
+
+export class CaribbeanServer {
+  private nodeManager: NodeManager;
+  private websocketHub: WebSocketHub;
+  private apiServer: ApiServer | null = null;
+  private database: DatabaseManager | null = null;
+  private config: ServerConfig;
+
+  constructor(config: ServerConfig) {
+    this.config = config;
+    this.nodeManager = new NodeManager();
+    this.websocketHub = new WebSocketHub(
+      {
+        ...this.config.websocket,
+        authToken: this.config.auth?.enabled
+          ? this.config.auth.tokens[0]
+          : undefined
+      },
+      this.nodeManager
+    );
+
+    if (this.config.database) {
+      this.database = new DatabaseManager(this.config.database);
+    }
+
+    if (this.config.api) {
+      this.apiServer = new ApiServer(
+        this.config.api,
+        (nodeId) => this.nodeManager.getNode(nodeId),
+        () => this.nodeManager.getAllNodes(),
+        (nodeId, action, params) => this.websocketHub.sendCommand(nodeId, action, params)
+      );
+    }
+  }
+
+  async start(): Promise<void> {
+    console.log('[Server] Starting Caribbean Server...');
+    
+    if (this.database) {
+      await this.database.connect();
+      console.log('[Server] Database connected');
+    }
+    
+    await this.websocketHub.start();
+    
+    if (this.apiServer) {
+      await this.apiServer.start();
+    }
+    
+    console.log('[Server] Caribbean Server is running');
+    console.log(`[Server] WebSocket: ws://0.0.0.0:${this.config.websocket.port}${this.config.websocket.path}`);
+    
+    if (this.database) {
+      setInterval(() => {
+        this.syncNodesToDatabase();
+      }, 30000);
+    }
+    
+    setInterval(() => {
+      this.logStatus();
+    }, 60000);
+  }
+
+  stop(): void {
+    console.log('[Server] Stopping Caribbean Server...');
+    this.websocketHub.stop();
+    if (this.apiServer) {
+      this.apiServer.stop();
+    }
+    if (this.database) {
+      this.database.disconnect();
+    }
+  }
+
+  getNodeManager(): NodeManager {
+    return this.nodeManager;
+  }
+
+  getWebSocketHub(): WebSocketHub {
+    return this.websocketHub;
+  }
+
+  getDatabase(): DatabaseManager | null {
+    return this.database;
+  }
+
+  private syncNodesToDatabase(): void {
+    if (!this.database) return;
+
+    const nodes = this.nodeManager.getAllNodes();
+    nodes.forEach(node => {
+      this.database?.saveNode(node);
+    });
+  }
+
+  private logStatus(): void {
+    const total = this.nodeManager.getNodeCount();
+    const connected = this.nodeManager.getConnectedCount();
+    console.log(`[Server] Status: ${connected}/${total} nodes connected`);
+  }
+}

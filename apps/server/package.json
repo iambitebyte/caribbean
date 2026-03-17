@@ -1,0 +1,28 @@
+{
+  "name": "@caribbean/server",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "caribbean-server": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@caribbean/shared": "workspace:*",
+    "@caribbean/protocol": "workspace:*",
+    "fastify": "^4.26.0",
+    "@fastify/websocket": "^10.0.1",
+    "commander": "^12.0.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}

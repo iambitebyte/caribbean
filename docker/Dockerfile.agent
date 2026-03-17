@@ -1,0 +1,36 @@
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+RUN npm install -g pnpm
+
+COPY package.json pnpm-lock.yaml ./
+COPY packages/shared packages/shared
+COPY packages/protocol packages/protocol
+
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @caribbean/shared build
+RUN pnpm --filter @caribbean/protocol build
+
+COPY apps/agent ./apps/agent
+RUN pnpm --filter @caribbean/agent build
+
+FROM node:18-alpine
+
+WORKDIR /app
+
+RUN npm install -g pnpm
+
+COPY package.json pnpm-lock.yaml ./
+COPY packages/shared packages/shared
+COPY packages/protocol packages/protocol
+
+RUN pnpm install --frozen-lockfile --prod
+
+COPY --from=builder /app/apps/agent/dist ./dist
+COPY --from=builder /app/packages/shared/dist ./node_modules/@caribbean/shared
+COPY --from=builder /app/packages/protocol/dist ./node_modules/@caribbean/protocol
+
+ENV NODE_ENV=production
+
+CMD ["node", "dist/cli.js"]
