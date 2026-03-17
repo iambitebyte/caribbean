@@ -2,9 +2,10 @@
 
 import { Command } from 'commander';
 import { randomUUID } from 'crypto';
-import { Agent } from './index';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join, homedir } from 'path';
+import { Agent } from './index.js';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { homedir } from 'os';
 
 const program = new Command();
 const CONFIG_PATH = join(homedir(), '.caribbean', 'agent.json');
@@ -17,7 +18,7 @@ program
 program
   .command('init')
   .description('Initialize agent configuration')
-  .option('--server <url>', 'Server WebSocket URL', 'ws://localhost:8080')
+  .option('--server <url>', 'Server WebSocket URL', 'ws://localhost:8080/ws/agent')
   .option('--name <name>', 'Node name', `node-${randomUUID().slice(0, 8)}`)
   .option('--token <token>', 'Authentication token')
   .action((options) => {
@@ -43,6 +44,7 @@ program
     };
 
     if (!existsSync(configDir)) {
+      mkdirSync(configDir, { recursive: true });
       process.stdout.write(`Creating config directory: ${configDir}\n`);
     }
 

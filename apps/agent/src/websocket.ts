@@ -45,7 +45,8 @@ export class WebSocketClient {
       headers['Authorization'] = `Bearer ${this.config.authToken}`;
     }
 
-    this.ws = new WebSocket(this.config.url, { headers });
+    const url = this.config.url;
+    this.ws = new WebSocket(url, { headers });
 
     this.ws.on('open', () => {
       console.log(`[Agent] Connected to ${this.config.url}`);

@@ -11,11 +11,20 @@
     "lint": "pnpm --filter \"./apps/**\" lint",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules"
   },
-  "keywords": ["cluster", "management", "openclaw", "websocket", "monitoring"],
+  "keywords": [
+    "cluster",
+    "management",
+    "openclaw",
+    "websocket",
+    "monitoring"
+  ],
   "author": "Caribbean Contributors",
   "license": "MIT",
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  }
 }
