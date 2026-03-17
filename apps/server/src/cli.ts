@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { CaribbeanServer } from './index';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join, homedir } from 'path';
+import { CaribbeanServer } from './index.js';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { homedir } from 'os';
 
 const program = new Command();
 const CONFIG_PATH = join(homedir(), '.caribbean', 'server.json');
@@ -25,6 +26,10 @@ program
         path: '/ws/agent',
         maxConnections: 1000
       },
+      api: {
+        port: 3000,
+        host: '0.0.0.0'
+      },
       web: {
         port: 3000,
         title: 'Caribbean Dashboard'
@@ -38,6 +43,11 @@ program
         tokens: options.token ? [options.token] : []
       }
     };
+
+    const configDir = dirname(CONFIG_PATH);
+    if (!existsSync(configDir)) {
+      mkdirSync(configDir, { recursive: true });
+    }
 
     writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
     console.log(`\n✓ Server configuration created at ${CONFIG_PATH}`);

@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
-import { WebSocketClient } from './websocket';
-import { StatusCollector } from './collector';
+import { WebSocketClient } from './websocket.js';
+import { StatusCollector } from './collector.js';
 
 export interface AgentConfig {
   server: {

@@ -1,7 +1,7 @@
-import { NodeManager } from './node-manager';
-import { WebSocketHub } from './websocket-hub';
-import { ApiServer } from './api';
-import { DatabaseManager } from './database';
+import { NodeManager } from './node-manager.js';
+import { WebSocketHub } from './websocket-hub.js';
+import { ApiServer } from './api.js';
+import { DatabaseManager } from './database.js';
 
 export interface ServerConfig {
   websocket: {

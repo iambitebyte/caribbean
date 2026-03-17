@@ -1,6 +1,6 @@
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import { randomUUID } from 'crypto';
-import { NodeManager } from './node-manager';
+import { NodeManager } from './node-manager.js';
 import type { Message, CommandMessage, ConnectMessage, HeartbeatMessage, AckMessage } from '@caribbean/protocol';
 
 export interface WebSocketServerConfig {
@@ -14,7 +14,7 @@ export class WebSocketHub {
   private wss: WebSocketServer | null = null;
   private nodeManager: NodeManager;
   private config: WebSocketServerConfig;
-  private clients: Map<string, WebSocket> = new Map();
+  private clients: Map<string, any> = new Map();
 
   constructor(config: WebSocketServerConfig, nodeManager: NodeManager) {
     this.config = config;

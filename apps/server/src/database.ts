@@ -1,6 +1,8 @@
 import { open, Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import type { NodeInfo } from '@caribbean/shared';
+import { existsSync, mkdirSync } from 'fs';
+import { dirname } from 'path';
 
 export interface DatabaseConfig {
   type: 'sqlite' | 'postgresql';
@@ -18,8 +20,15 @@ export class DatabaseManager {
 
   async connect(): Promise<void> {
     if (this.config.type === 'sqlite') {
+      const dbPath = this.config.path || './data/caribbean.db';
+      const dbDir = dirname(dbPath);
+      
+      if (!existsSync(dbDir)) {
+        mkdirSync(dbDir, { recursive: true });
+      }
+
       this.db = await open({
-        filename: this.config.path || './data/caribbean.db',
+        filename: dbPath,
         driver: sqlite3.Database
       });
 

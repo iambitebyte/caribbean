@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import Fastify from 'fastify';
 import type { NodeInfo } from '@caribbean/shared';
 
 export interface ApiServerConfig {
@@ -7,7 +7,7 @@ export interface ApiServerConfig {
 }
 
 export class ApiServer {
-  private fastify: FastifyInstance;
+  private fastify: any;
   private config: ApiServerConfig;
   private getNodeInfo: (nodeId: string) => NodeInfo | undefined;
   private getAllNodes: () => NodeInfo[];
@@ -23,7 +23,7 @@ export class ApiServer {
     this.getNodeInfo = getNodeInfo;
     this.getAllNodes = getAllNodes;
     this.sendCommand = sendCommand;
-    this.fastify = require('fastify')({ logger: false });
+    this.fastify = Fastify({ logger: false });
     this.setupRoutes();
   }
 
@@ -39,7 +39,7 @@ export class ApiServer {
       };
     });
 
-    this.fastify.get<{ Params: { id: string } }>('/api/nodes/:id', async (request, reply) => {
+    this.fastify.get('/api/nodes/:id', async (request: any, reply: any) => {
       const { id } = request.params;
       const node = this.getNodeInfo(id);
       
@@ -51,7 +51,7 @@ export class ApiServer {
       return node;
     });
 
-    this.fastify.get<{ Params: { id: string } }>('/api/nodes/:id/status', async (request, reply) => {
+    this.fastify.get('/api/nodes/:id/status', async (request: any, reply: any) => {
       const { id } = request.params;
       const node = this.getNodeInfo(id);
       
@@ -68,16 +68,14 @@ export class ApiServer {
       };
     });
 
-    this.fastify.post<{ Params: { id: string }, Body: { action: string; params?: Record<string, unknown> } }>(
-      '/api/nodes/:id/command',
-      async (request, reply) => {
-        const { id } = request.params;
-        const { action, params = {} } = request.body;
+    this.fastify.post('/api/nodes/:id/command', async (request: any, reply: any) => {
+      const { id } = request.params;
+      const { action, params = {} } = request.body;
 
-        try {
-          const commandId = this.sendCommand(id, action, params);
-          return {
-            success: true,
+      try {
+        const commandId = this.sendCommand(id, action, params);
+        return {
+          success: true,
             commandId,
             nodeId: id,
             action
