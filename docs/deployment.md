@@ -362,6 +362,74 @@ sudo systemctl start caribbean-agent
 # Check status
 sudo systemctl status caribbean-server
 sudo systemctl status caribbean-agent
+
+# Stop services
+sudo systemctl stop caribbean-server
+sudo systemctl stop caribbean-agent
+
+# Restart services
+sudo systemctl restart caribbean-server
+sudo systemctl restart caribbean-agent
+```
+
+### Service Management Commands
+
+Caribbean provides CLI commands for service management outside of systemd:
+
+```bash
+# Start services
+caribbean-server start
+caribbean-agent start
+
+# Stop services
+caribbean-server stop    # Stops WebSocket (8080) and REST API (3000)
+caribbean-agent stop     # Stops the agent
+
+# Restart services
+caribbean-server restart
+caribbean-agent restart
+
+# View status
+caribbean-server status
+caribbean-agent status
+```
+
+#### PID Management
+
+Caribbean uses PID files to track running services:
+
+- **Server PID**: `~/.caribbean/server.pid`
+- **Agent PID**: `~/.caribbean/agent.pid`
+
+#### Stop Mechanism
+
+1. Send SIGTERM signal (graceful shutdown, 10s timeout)
+2. If timeout, send SIGKILL signal (forced shutdown)
+3. Remove PID file
+
+#### Duplicate Start Prevention
+
+- Checks PID file before starting
+- Rejects start if service is already running
+- Cleans up stale PID files automatically
+
+#### Example Usage
+
+```bash
+# Start server
+npx tsx apps/server/src/cli.js start
+
+# Check PID
+cat ~/.caribbean/server.pid
+
+# Stop server (graceful)
+npx tsx apps/server/src/cli.js stop
+
+# Restart server
+npx tsx apps/server/src/cli.js restart
+
+# View help
+npx tsx apps/server/src/cli.js --help
 ```
 
 ## Configuration
@@ -548,6 +616,42 @@ caribbean-agent status
 3. **Authentication failures**: Verify token matches server config
 4. **Network issues**: Check DNS resolution and firewall rules
 5. **Resource limits**: Adjust memory/CPU limits in K8s/Docker
+
+#### Service Won't Stop
+
+```bash
+# Check if process is stuck
+ps aux | grep -i caribbean
+
+# Force kill if needed
+kill -9 <PID>
+
+# Remove stale PID file
+rm ~/.caribbean/server.pid
+rm ~/.caribbean/agent.pid
+```
+
+#### Stale PID File
+
+```bash
+# If you see "stale PID file" error
+# The service is not running but PID file exists
+
+# Remove the PID file and start again
+rm ~/.caribbean/server.pid
+caribbean-server start
+```
+
+#### Service Won't Start
+
+```bash
+# Check if already running
+caribbean-server status
+
+# If "already running" but service is actually down
+rm ~/.caribbean/server.pid
+caribbean-server start
+```
 
 ## Production Checklist
 

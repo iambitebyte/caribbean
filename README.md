@@ -82,6 +82,75 @@ caribbean-agent start
 
 打开浏览器访问 `http://your-server:3000`，即可查看集群实时状态。
 
+### 4. 服务管理
+
+Caribbean 提供了完整的服务管理命令，包括启动、停止和重启功能。
+
+#### 启动服务
+
+```bash
+# 启动 Server
+npx tsx apps/server/src/cli.js start
+
+# 启动 Agent
+npx tsx apps/agent/src/cli.js start
+```
+
+#### 停止服务
+
+```bash
+# 停止 Server (同时停止 WebSocket 8080 和 REST API 3000)
+npx tsx apps/server/src/cli.js stop
+
+# 停止 Agent
+npx tsx apps/agent/src/cli.js stop
+```
+
+#### 重启服务
+
+```bash
+# 重启 Server
+npx tsx apps/server/src/cli.js restart
+
+# 重启 Agent
+npx tsx apps/agent/src/cli.js restart
+```
+
+#### 查看服务状态
+
+```bash
+# 查看 Server 配置状态
+npx tsx apps/server/src/cli.js status
+
+# 查看 Agent 配置状态
+npx tsx apps/agent/src/cli.js status
+```
+
+#### 查看帮助
+
+```bash
+# 查看 Server 命令帮助
+npx tsx apps/server/src/cli.js --help
+
+# 查看 Agent 命令帮助
+npx tsx apps/agent/src/cli.js --help
+```
+
+#### PID 文件管理
+
+Caribbean 使用 PID 文件跟踪运行中的服务：
+
+- **Server PID**: `~/.caribbean/server.pid`
+- **Agent PID**: `~/.caribbean/agent.pid`
+
+停止机制：
+- 首先发送 SIGTERM 信号（优雅停止，10 秒超时）
+- 如果超时，发送 SIGKILL 信号（强制停止）
+
+防重复启动：
+- 启动前检查 PID 文件
+- 如果服务已运行，拒绝启动并提示使用 stop 命令
+
 ## 技术栈
 
 | 组件 | 技术 | 说明 |
@@ -321,11 +390,13 @@ kubectl apply -f k8s/agent-daemonset.yaml
 ## 路线图
 
 - [x] 基础架构设计
-- [ ] Agent 状态采集
-- [ ] WebSocket 双向通信
+- [x] Agent 状态采集
+- [x] WebSocket 双向通信
+- [x] REST API 接口
+- [x] 数据持久化层
+- [x] 服务管理命令（stop/restart）
 - [ ] Next.js 仪表盘
 - [ ] 告警系统
-- [ ] 远程指令执行
 - [ ] 日志聚合
 - [ ] 性能分析
 - [ ] 多集群支持
