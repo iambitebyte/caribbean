@@ -70,11 +70,8 @@ program
       },
       api: {
         port: 3000,
-        host: '0.0.0.0'
-      },
-      web: {
-        port: 3000,
-        title: 'Caribbean Dashboard'
+        host: '0.0.0.0',
+        webDistPath: join(process.cwd(), 'dist/web')
       },
       database: {
         type: 'sqlite',
@@ -95,7 +92,8 @@ program
     console.log(`\n✓ Server configuration created at ${CONFIG_PATH}`);
     console.log(`\nConfiguration:`);
     console.log(`  WebSocket Port: ${config.websocket.port}`);
-    console.log(`  Web Port: ${config.web.port}`);
+    console.log(`  API Port: ${config.api.port}`);
+    console.log(`  Web UI: http://localhost:${config.api.port}`);
     console.log(`  Auth Enabled: ${config.auth.enabled}`);
     console.log(`\nNext steps:`);
     console.log(`  caribbean-server start`);
@@ -166,7 +164,8 @@ program
       console.log(`  WebSocket Port: ${config.websocket.port}`);
       console.log(`  WebSocket Path: ${config.websocket.path}`);
       console.log(`  Max Connections: ${config.websocket.maxConnections}`);
-      console.log(`  Web Port: ${config.web.port}`);
+      console.log(`  API Port: ${config.api.port}`);
+      console.log(`  Web UI: http://${config.api.host}:${config.api.port}`);
       console.log(`  Auth Enabled: ${config.auth.enabled}`);
     } catch (error) {
       console.error(`Failed to read config file: ${options.config}`);

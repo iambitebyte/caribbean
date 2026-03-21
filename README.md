@@ -14,7 +14,8 @@ Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集
 
 - **🚀 轻量级 Agent** - 单二进制文件，资源占用极低 (< 50MB 内存)
 - **🔄 实时双向通信** - WebSocket 保持长连接，支持状态上报和远程指令
-- **📊 可视化监控** - 基于 Next.js 的现代化 Web 仪表盘
+- **📊 可视化监控** - 基于 React + Vite 的现代化 Web 仪表盘
+- **⚡ Gateway 监控** - Agent 端主动验证 OpenClaw Gateway 状态
 - **🎯 智能告警** - 节点离线、资源不足自动通知
 - **🔒 安全传输** - 支持 TLS 加密和 Token 认证
 - **📦 一键部署** - 提供 CLI 工具和 Docker 镜像
@@ -25,14 +26,28 @@ Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集
 ┌─────────────────────────────────────────────────────────┐
 │                    Caribbean Server                     │
 │  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐  │
-│  │   REST API   │  │ WebSocket Hub│  │  Next.js    │  │
-│  │   (HTTP)     │  │  (实时通信)   │  │   Web UI    │  │
+│  │   REST API   │  │ WebSocket Hub│  │  Web UI     │  │
+│  │   (HTTP)     │  │  (实时通信)   │  │ (React)     │  │
 │  └──────────────┘  └──────────────┘  └─────────────┘  │
-│                                                         │
 │  ┌─────────────────────────────────────────────────┐   │
 │  │              数据持久化 (SQLite/PostgreSQL)        │   │
 │  └─────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
+                            ▲
+                            │ WebSocket (双向) / HTTP
+         ┌──────────────────┼──────────────────┐
+         │                  │                  │
+ ┌───────┴──────┐   ┌───────┴──────┐   ┌───────┴──────┐
+ │   Node 01    │   │   Node 02    │   │   Node 03    │
+ │ ┌──────────┐ │   │ ┌──────────┐ │   │ ┌──────────┐ │
+ │ │ Caribbean│ │   │ │ Caribbean│ │   │ │ Caribbean│ │
+ │ │  Agent   │ │   │ │  Agent   │ │   │ │  Agent   │ │
+ │ └──────────┘ │   │ └──────────┘ │   │ └──────────┘ │
+ │ ┌──────────┐ │   │ ┌──────────┐ │   │ ┌──────────┐ │
+ │ │ OpenClaw │ │   │ │ OpenClaw │ │   │ │ OpenClaw │ │
+ │ │ Gateway  │ │   │ │ Gateway  │ │   │ │ Gateway  │ │
+ │ └──────────┘ │   │ └──────────┘ │   │ └──────────┘ │
+ └──────────────┘   └──────────────┘   └──────────────┘
                            ▲
                            │ WebSocket (双向)
         ┌──────────────────┼──────────────────┐
@@ -52,19 +67,42 @@ Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集
 
 ## 快速开始
 
-### 1. 启动 Server
+### 一键启动（推荐）
 
 ```bash
-# 使用 Docker 快速启动
+./start.sh
+```
+
+这将自动构建并启动 Caribbean Server（包含 Web UI）。
+
+### 手动启动
+
+```bash
+# 1. 构建项目
+cd apps/server
+pnpm run build:all
+
+# 2. 启动 Server
+npm start
+```
+
+Server 将启动：
+- WebSocket 服务：`ws://localhost:8080`（用于 Agent 连接）
+- REST API + Web UI：`http://localhost:3000`
+
+### 访问 Web UI
+
+打开浏览器访问 `http://localhost:3000`，查看集群实时状态。
+
+### 使用 Docker（可选）
+
+```bash
 docker run -d \
   --name caribbean-server \
   -p 3000:3000 \
   -p 8080:8080 \
   -v caribbean-data:/app/data \
   ghcr.io/your-org/caribbean-server:latest
-
-# 或使用 npm
-npx @caribbean/server@latest
 ```
 
 ### 2. 部署 Agent
@@ -80,7 +118,37 @@ caribbean-agent start
 
 ### 3. 访问仪表盘
 
-打开浏览器访问 `http://your-server:3000`，即可查看集群实时状态。
+打开浏览器访问 `http://localhost:3000`，即可查看集群实时状态。
+
+**注意：Web Dashboard 已集成到 Server 中，无需单独启动！**
+
+- WebSocket 服务：`ws://localhost:8080`（Agent 连接）
+- REST API + Web UI：`http://localhost:3000`
+
+### 4. 构建和部署
+
+```bash
+# 构建 Web Dashboard 和 Server
+cd apps/server
+pnpm run build:all
+
+# 启动 Server（包含 Web UI）
+npm start
+```
+
+### 5. 开发模式
+
+```bash
+# 启动 Web Dashboard 开发服务器（热重载）
+cd apps/web
+pnpm dev
+
+# 启动 Server（另一个终端）
+cd apps/server
+npm start
+```
+
+开发模式下，Web Dashboard 运行在 `http://localhost:5173`，Server 运行在 `http://localhost:3000`。
 
 ### 4. 服务管理
 
@@ -156,8 +224,8 @@ Caribbean 使用 PID 文件跟踪运行中的服务：
 | 组件 | 技术 | 说明 |
 |------|------|------|
 | **Agent** | TypeScript + Bun | 轻量级守护进程，采集节点状态 |
-| **Server** | Fastify + Socket.io | 高性能 WebSocket 服务端 |
-| **Web UI** | Next.js 15 + Tailwind | 实时数据可视化仪表盘 |
+| **Server** | Fastify + WebSocket | 高性能 WebSocket 服务端 |
+| **Web UI** | React 18 + Vite + TailwindCSS | 实时数据可视化仪表盘 |
 | **数据库** | SQLite / PostgreSQL | 状态持久化存储 |
 | **协议** | 自定义 JSON | 轻量级双向通信协议 |
 
@@ -173,11 +241,25 @@ caribbean/
 │   │   │   └── index.ts        # 入口
 │   │   └── package.json
 │   │
-│   └── server/             # 服务端 + Web UI
+│   ├── server/             # 服务端
+│   │   ├── src/
+│   │   │   ├── websocket-hub.ts    # WebSocket Hub
+│   │   │   ├── api.ts              # REST API
+│   │   │   ├── node-manager.ts     # 节点管理
+│   │   │   ├── database.ts         # 数据库管理
+│   │   │   └── index.ts            # 入口
+│   │   └── package.json
+│   │
+│   └── web/                # Web Dashboard
 │       ├── src/
-│       │   ├── websocket/      # WebSocket Hub
-│       │   ├── api/            # REST API
-│       │   └── web/            # Next.js 应用
+│       │   ├── components/          # UI 组件
+│       │   │   ├── ui/             # shadcn/ui 组件
+│       │   │   └── NodeCard.tsx    # 节点卡片
+│       │   ├── lib/                # 工具函数
+│       │   ├── types/              # 类型定义
+│       │   ├── App.tsx             # 主应用
+│       │   └── main.tsx            # 入口
+│       ├── index.html
 │       └── package.json
 │
 ├── packages/
@@ -186,7 +268,7 @@ caribbean/
 │
 ├── docs/                   # 文档
 ├── docker/                 # Docker 配置
-└── scripts/                # 部署脚本
+└── start-dashboard.sh      # 一键启动脚本
 ```
 
 ## 通信协议
@@ -215,7 +297,8 @@ caribbean/
         "max": 10,
         "list": ["reef", "navigator", "shell"]
       },
-      "skills": ["shell", "github", "tmux", "browser"]
+      "skills": ["shell", "github", "tmux", "browser"],
+      "openclawGateway": "running"
     }
   }
 }
@@ -244,6 +327,7 @@ caribbean/
 |------|------|------|
 | GET | `/api/nodes` | 获取所有节点列表 |
 | GET | `/api/nodes/:id` | 获取单个节点详情 |
+| PATCH | `/api/nodes/:id/name` | 更新节点名称 |
 | GET | `/api/nodes/:id/status` | 获取节点历史状态 |
 | POST | `/api/nodes/:id/command` | 向节点发送指令 |
 | GET | `/api/health` | 服务健康检查 |
@@ -302,6 +386,10 @@ caribbean/
     "type": "sqlite",       // sqlite 或 postgresql
     "path": "./data/caribbean.db"
   },
+  "history": {
+    "retention": 5,        // 保留每个节点最近 5 条状态记录
+    "cleanup": "auto"      // 自动清理历史记录
+  },
   "auth": {
     "enabled": true,
     "tokens": ["your-secret-token"]
@@ -328,11 +416,26 @@ pnpm build
 ### 本地开发
 
 ```bash
-# 启动 Server (包含 Web UI)
-pnpm --filter @caribbean/server dev
+# 启动 Server
+cd apps/server
+pnpm run build
+npm start
 
 # 启动 Agent (另一个终端)
-pnpm --filter @caribbean/agent dev -- --server ws://localhost:8080
+cd apps/agent
+pnpm run build
+npm start
+
+# 启动 Web Dashboard 开发服务器 (另一个终端，可选)
+cd apps/web
+pnpm dev
+```
+
+或者使用构建脚本（生产模式）：
+```bash
+cd apps/server
+pnpm run build:all
+npm start
 ```
 
 ### 运行测试
@@ -395,7 +498,10 @@ kubectl apply -f k8s/agent-daemonset.yaml
 - [x] REST API 接口
 - [x] 数据持久化层
 - [x] 服务管理命令（stop/restart）
-- [ ] Next.js 仪表盘
+- [x] React Dashboard
+- [x] OpenClaw Gateway 状态监控
+- [x] 节点名称更新 API
+- [x] 数据库历史记录自动清理（保留最近 5 条）
 - [ ] 告警系统
 - [ ] 日志聚合
 - [ ] 性能分析

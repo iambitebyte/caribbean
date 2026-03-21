@@ -78,8 +78,10 @@ GET /api/nodes
           "max": 10,
           "list": ["reef", "navigator", "shell"]
         },
-        "skills": ["shell", "github", "tmux", "browser"]
-      }
+        "skills": ["shell", "github", "tmux", "browser"],
+        "openclawGateway": "running"
+      },
+      "openclawStatus": "running"
     }
   ],
   "count": 1
@@ -111,23 +113,25 @@ GET /api/nodes/:id
   "tags": ["prod", "gpu"],
   "connected": true,
   "lastSeen": "2026-03-17T22:37:00Z",
-  "status": {
-    "version": "0.1.0",
-    "uptime": 86400,
-    "memory": {
-      "used": 1.2,
-      "total": 4.0,
-      "percent": 30
-    },
-    "cpu": {
-      "percent": 15
-    },
-    "agents": {
-      "active": 3,
-      "max": 10,
-      "list": ["reef", "navigator", "shell"]
-    },
-    "skills": ["shell", "github", "tmux", "browser"]
+    "status": {
+      "version": "0.1.0",
+      "uptime": 86400,
+      "memory": {
+        "used": 1.2,
+        "total": 4.0,
+        "percent": 30
+      },
+      "cpu": {
+        "percent": 15
+      },
+      "agents": {
+        "active": 3,
+        "max": 10,
+        "list": ["reef", "navigator", "shell"]
+      },
+      "skills": ["shell", "github", "tmux", "browser"],
+      "openclawGateway": "running"
+    }
   }
 }
 ```
@@ -161,26 +165,85 @@ GET /api/nodes/:id/status
 ```json
 {
   "nodeId": "node-01",
-  "status": {
-    "version": "0.1.0",
-    "uptime": 86400,
-    "memory": {
-      "used": 1.2,
-      "total": 4.0,
-      "percent": 30
+    "status": {
+      "version": "0.1.0",
+      "uptime": 86400,
+      "memory": {
+        "used": 1.2,
+        "total": 4.0,
+        "percent": 30
+      },
+      "cpu": {
+        "percent": 15
+      },
+      "agents": {
+        "active": 3,
+        "max": 10,
+        "list": ["reef", "navigator", "shell"]
+      },
+      "skills": ["shell", "github", "tmux", "browser"],
+      "openclawGateway": "running"
     },
-    "cpu": {
-      "percent": 15
-    },
-    "agents": {
-      "active": 3,
-      "max": 10,
-      "list": ["reef", "navigator", "shell"]
-    },
-    "skills": ["shell", "github", "tmux", "browser"]
-  },
   "lastSeen": "2026-03-17T22:37:00Z",
   "connected": true
+}
+```
+
+---
+
+### Update Node Name
+
+Update the display name of a node.
+
+**Request:**
+
+```http
+PATCH /api/nodes/:id/name
+```
+
+**Parameters:**
+
+- `id` (path): Node ID
+
+**Body:**
+
+```json
+{
+  "name": "new-name"
+}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "nodeId": "node-01",
+  "name": "new-name"
+}
+```
+
+**Response (400 Bad Request):**
+
+```json
+{
+  "error": "Name is required"
+}
+```
+
+**Response (404 Not Found):**
+
+```json
+{
+  "error": "Node not found"
+}
+```
+
+**Response (501 Not Implemented):**
+
+```json
+{
+  "error": "Database not available"
 }
 ```
 
@@ -305,24 +368,26 @@ ws://your-server:8080/ws/agent
   "payload": {
     "nodeId": "node-01",
     "timestamp": "2026-03-17T22:37:00Z",
-    "status": {
-      "version": "0.1.0",
-      "uptime": 86400,
-      "memory": {
-        "used": 1.2,
-        "total": 4.0,
-        "percent": 30
-      },
-      "cpu": {
-        "percent": 15
-      },
-      "agents": {
-        "active": 3,
-        "max": 10,
-        "list": ["reef", "navigator", "shell"]
-      },
-      "skills": ["shell", "github", "tmux", "browser"]
-    }
+  "status": {
+    "version": "0.1.0",
+    "uptime": 86400,
+    "memory": {
+      "used": 1.2,
+      "total": 4.0,
+      "percent": 30
+    },
+    "cpu": {
+      "percent": 15
+    },
+    "agents": {
+      "active": 3,
+      "max": 10,
+      "list": ["reef", "navigator", "shell"]
+    },
+    "skills": ["shell", "github", "tmux", "browser"],
+    "openclawGateway": "running"
+  },
+  "openclawStatus": "running"
   }
 }
 ```
@@ -392,6 +457,11 @@ curl http://localhost:3000/api/nodes
 # Get specific node
 curl http://localhost:3000/api/nodes/node-01
 
+# Update node name
+curl -X PATCH http://localhost:3000/api/nodes/node-01/name \
+  -H "Content-Type: application/json" \
+  -d '{"name": "new-name"}'
+
 # Send command
 curl -X POST http://localhost:3000/api/nodes/node-01/command \
   -H "Content-Type: application/json" \
@@ -405,6 +475,15 @@ curl -X POST http://localhost:3000/api/nodes/node-01/command \
 const response = await fetch('http://localhost:3000/api/nodes');
 const data = await response.json();
 console.log(data.nodes);
+
+// Update node name
+const nameUpdate = await fetch('http://localhost:3000/api/nodes/node-01/name', {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ name: 'new-name' })
+});
+const nameResult = await nameUpdate.json();
+console.log(nameResult);
 
 // Send command
 const command = await fetch('http://localhost:3000/api/nodes/node-01/command', {
@@ -428,6 +507,14 @@ import requests
 response = requests.get('http://localhost:3000/api/nodes')
 data = response.json()
 print(data['nodes'])
+
+# Update node name
+name_update = requests.patch(
+    'http://localhost:3000/api/nodes/node-01/name',
+    json={'name': 'new-name'}
+)
+result = name_update.json()
+print(result)
 
 # Send command
 command = requests.post(

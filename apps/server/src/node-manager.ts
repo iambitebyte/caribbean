@@ -1,8 +1,14 @@
 import type { NodeInfo, NodeStatus } from '@caribbean/shared';
+import { randomUUID } from 'crypto';
 
 export class NodeManager {
   private nodes: Map<string, NodeInfo> = new Map();
   private nodeStatus: Map<string, NodeStatus> = new Map();
+
+  // Generate a unique ID for a new node
+  generateNodeId(): string {
+    return randomUUID();
+  }
 
   registerNode(nodeId: string, name: string, tags: string[]): void {
     const node: NodeInfo = {

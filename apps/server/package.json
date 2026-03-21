@@ -9,13 +9,16 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "start": "node dist/cli.js",
-    "clean": "rm -rf dist"
+    "start": "node dist/cli.js start",
+    "clean": "rm -rf dist",
+    "build:web": "cd ../web && pnpm run build && mkdir -p ../server/dist/web && cp -r dist/* ../server/dist/web/",
+    "build:all": "pnpm run build:web && pnpm run build"
   },
   "dependencies": {
     "@caribbean/shared": "workspace:*",
     "@caribbean/protocol": "workspace:*",
     "fastify": "^4.26.0",
+    "@fastify/cors": "^9.0.1",
     "@fastify/websocket": "^10.0.1",
     "commander": "^12.0.0",
     "sqlite": "^5.1.1",

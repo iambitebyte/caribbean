@@ -1,8 +1,8 @@
 import { open, Database } from 'sqlite';
-import sqlite3 from 'sqlite3';
 import type { NodeInfo } from '@caribbean/shared';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
+import sqlite3 from 'sqlite3';
 
 export interface DatabaseConfig {
   type: 'sqlite' | 'postgresql';
@@ -22,7 +22,7 @@ export class DatabaseManager {
     if (this.config.type === 'sqlite') {
       const dbPath = this.config.path || './data/caribbean.db';
       const dbDir = dirname(dbPath);
-      
+
       if (!existsSync(dbDir)) {
         mkdirSync(dbDir, { recursive: true });
       }
@@ -47,6 +47,7 @@ export class DatabaseManager {
         connected INTEGER DEFAULT 0,
         last_seen TEXT,
         status TEXT,
+        openclaw_status TEXT DEFAULT 'unknown',
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
@@ -55,14 +56,36 @@ export class DatabaseManager {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         node_id TEXT NOT NULL,
         status TEXT NOT NULL,
+        openclaw_status TEXT DEFAULT 'unknown',
         timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
       );
 
       CREATE INDEX IF NOT EXISTS idx_nodes_connected ON nodes(connected);
+      CREATE INDEX IF NOT EXISTS idx_nodes_openclaw_status ON nodes(openclaw_status);
       CREATE INDEX IF NOT EXISTS idx_status_history_node_id ON status_history(node_id);
       CREATE INDEX IF NOT EXISTS idx_status_history_timestamp ON status_history(timestamp);
     `);
+
+    // 初始化后，清理过多的历史记录
+    await this.cleanupHistory();
+  }
+
+  async cleanupHistory(): Promise<void> {
+    if (!this.db) return;
+
+    // 只保留每个节点的最近 5 条历史记录
+    await this.db.exec(`
+      DELETE FROM status_history 
+      WHERE id NOT IN (
+        SELECT id FROM status_history AS sh
+        WHERE sh.node_id = status_history.node_id
+        ORDER BY sh.id DESC
+        LIMIT 5
+      )
+    `);
+
+    console.log('[Database] History cleaned - keeping only last 5 records per node');
   }
 
   async saveNode(node: NodeInfo): Promise<void> {
@@ -73,8 +96,8 @@ export class DatabaseManager {
     const statusJson = node.status ? JSON.stringify(node.status) : null;
 
     await this.db.run(
-      `INSERT OR REPLACE INTO nodes (id, name, tags, connected, last_seen, status, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO nodes (id, name, tags, connected, last_seen, status, openclaw_status, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         node.id,
         node.name,
@@ -82,21 +105,42 @@ export class DatabaseManager {
         node.connected ? 1 : 0,
         node.lastSeen.toISOString(),
         statusJson,
+        node.openclawStatus || 'unknown',
         now
       ]
     );
 
-    if (node.status) {
-      await this.db.run(
-        `INSERT INTO status_history (node_id, status, timestamp)
-         VALUES (?, ?, ?)`,
-        [
-          node.id,
-          statusJson,
-          now
-        ]
-      );
+    // 只保留每个节点的最近 5 条历史记录
+    if (node.status && statusJson) {
+      await this.saveNodeHistory(node.id, statusJson, node.openclawStatus || 'unknown');
     }
+  }
+
+  async saveNodeHistory(nodeId: string, statusJson: string, openclawStatus: string): Promise<void> {
+    if (!this.db) return;
+
+    const now = new Date().toISOString();
+
+    await this.db.run(
+      `INSERT OR REPLACE INTO status_history (node_id, status, openclaw_status, timestamp)
+       VALUES (?, ?, ?, ?)`,
+      [nodeId, statusJson, openclawStatus || 'unknown', now]
+    );
+
+    // 清理旧的历史记录，只保留最近 5 条
+    await this.cleanupHistory();
+  }
+
+  async updateNodeHeartbeat(nodeId: string): Promise<void> {
+    if (!this.db) return;
+
+    const now = new Date().toISOString();
+
+    // 收到心跳只更新 last_seen 和 updated_at，不改变 connected 状态
+    await this.db.run(
+      `UPDATE nodes SET last_seen = ?, updated_at = ? WHERE id = ?`,
+      [now, now, nodeId]
+    );
   }
 
   async getNode(nodeId: string): Promise<NodeInfo | null> {
@@ -122,7 +166,7 @@ export class DatabaseManager {
     return rows.map(row => this.rowToNodeInfo(row));
   }
 
-  async getNodeStatusHistory(nodeId: string, limit: number = 100): Promise<any[]> {
+  async getNodeStatusHistory(nodeId: string, limit: number = 5): Promise<any[]> {
     if (!this.db) return [];
 
     const rows = await this.db.all(
@@ -137,8 +181,20 @@ export class DatabaseManager {
       id: row.id,
       nodeId: row.node_id,
       status: JSON.parse(row.status),
+      openclawStatus: row.openclaw_status,
       timestamp: new Date(row.timestamp)
     }));
+  }
+
+  async updateNodeName(nodeId: string, name: string): Promise<void> {
+    if (!this.db) return;
+
+    const now = new Date().toISOString();
+
+    await this.db.run(
+      `UPDATE nodes SET name = ?, updated_at = ? WHERE id = ?`,
+      [name, now, nodeId]
+    );
   }
 
   async deleteNode(nodeId: string): Promise<void> {
@@ -150,19 +206,6 @@ export class DatabaseManager {
     );
   }
 
-  async cleanupOldHistory(days: number = 7): Promise<void> {
-    if (!this.db) return;
-
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffIso = cutoff.toISOString();
-
-    await this.db.run(
-      `DELETE FROM status_history WHERE timestamp < ?`,
-      [cutoffIso]
-    );
-  }
-
   private rowToNodeInfo(row: any): NodeInfo {
     return {
       id: row.id,
@@ -170,7 +213,8 @@ export class DatabaseManager {
       tags: JSON.parse(row.tags || '[]'),
       connected: row.connected === 1,
       lastSeen: new Date(row.last_seen),
-      status: row.status ? JSON.parse(row.status) : undefined
+      status: row.status ? JSON.parse(row.status) : undefined,
+      openclawStatus: row.openclaw_status || 'unknown'
     };
   }
 

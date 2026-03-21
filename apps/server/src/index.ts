@@ -12,6 +12,7 @@ export interface ServerConfig {
   api?: {
     port: number;
     host: string;
+    webDistPath?: string;
   };
   database?: {
     type: 'sqlite' | 'postgresql';
@@ -41,7 +42,12 @@ export class CaribbeanServer {
           ? this.config.auth.tokens[0]
           : undefined
       },
-      this.nodeManager
+      this.nodeManager,
+      async (nodeId: string) => {
+        if (this.database) {
+          await this.database.saveNode(this.nodeManager.getNode(nodeId)!);
+        }
+      }
     );
 
     if (this.config.database) {
@@ -53,34 +59,44 @@ export class CaribbeanServer {
         this.config.api,
         (nodeId) => this.nodeManager.getNode(nodeId),
         () => this.nodeManager.getAllNodes(),
-        (nodeId, action, params) => this.websocketHub.sendCommand(nodeId, action, params)
+        (nodeId, action, params) => this.websocketHub.sendCommand(nodeId, action, params),
+        async () => {
+          if (this.database) {
+            return await this.database.getAllNodes();
+          }
+          return [];
+        },
+        async (nodeId: string, name: string) => {
+          if (this.database) {
+            await this.database.updateNodeName(nodeId, name);
+            const node = this.nodeManager.getNode(nodeId);
+            if (node) {
+              node.name = name;
+            }
+            await this.database.saveNode(node!);
+          }
+        }
       );
     }
   }
 
   async start(): Promise<void> {
     console.log('[Server] Starting Caribbean Server...');
-    
+
     if (this.database) {
       await this.database.connect();
       console.log('[Server] Database connected');
     }
-    
+
     await this.websocketHub.start();
-    
+
     if (this.apiServer) {
       await this.apiServer.start();
     }
-    
+
     console.log('[Server] Caribbean Server is running');
     console.log(`[Server] WebSocket: ws://0.0.0.0:${this.config.websocket.port}${this.config.websocket.path}`);
-    
-    if (this.database) {
-      setInterval(() => {
-        this.syncNodesToDatabase();
-      }, 30000);
-    }
-    
+
     setInterval(() => {
       this.logStatus();
     }, 60000);
@@ -88,6 +104,7 @@ export class CaribbeanServer {
 
   stop(): void {
     console.log('[Server] Stopping Caribbean Server...');
+
     this.websocketHub.stop();
     if (this.apiServer) {
       this.apiServer.stop();
@@ -107,15 +124,6 @@ export class CaribbeanServer {
 
   getDatabase(): DatabaseManager | null {
     return this.database;
-  }
-
-  private syncNodesToDatabase(): void {
-    if (!this.database) return;
-
-    const nodes = this.nodeManager.getAllNodes();
-    nodes.forEach(node => {
-      this.database?.saveNode(node);
-    });
   }
 
   private logStatus(): void {

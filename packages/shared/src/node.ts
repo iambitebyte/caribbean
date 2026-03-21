@@ -5,6 +5,7 @@ export interface NodeStatus {
   cpu: CpuInfo;
   agents: AgentsInfo;
   skills: string[];
+  openclawGateway?: string;
 }
 
 export interface MemoryInfo {
@@ -30,4 +31,5 @@ export interface NodeInfo {
   connected: boolean;
   lastSeen: Date;
   status?: NodeStatus;
+  openclawStatus?: string;
 }
