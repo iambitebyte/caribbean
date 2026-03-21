@@ -85,26 +85,26 @@ export class StatusCollector {
 
   private collectOpenClawGatewayStatus(): OpenClawGatewayStatus | string {
     try {
-      const gatewayPort = 8000;
-      const gatewayUrl = `http://localhost:${gatewayPort}/api/gateway/status`;
-      
-      const httpCode = execSync(`curl -s -o /dev/null -w "%{http_code}" --connect-timeout 3 --max-time 5 "${gatewayUrl}"`, {
-        stdio: 'ignore',
-        encoding: 'utf-8'
-      }).trim();
-      
-      if (httpCode !== '200') {
+      const statusOutput = execSync('openclaw gateway status', {
+        encoding: 'utf-8',
+        timeout: 5000
+      });
+
+      const runningMatch = statusOutput.match(/Runtime:\s*(\w+)/i);
+      const status = runningMatch ? runningMatch[1].toLowerCase() : 'stopped';
+
+      if (status !== 'running') {
         return 'stopped';
       }
 
-      const detailedStatus = this.collectDetailedOpenClawStatus();
+      const detailedStatus = this.collectDetailedOpenClawStatus(statusOutput);
       return detailedStatus;
-    } catch {
+    } catch (error) {
       return 'stopped';
     }
   }
 
-  private collectDetailedOpenClawStatus(): OpenClawGatewayStatus {
+  private collectDetailedOpenClawStatus(statusOutput: string): OpenClawGatewayStatus {
     const status: OpenClawGatewayStatus = {
       status: 'running',
       healthy: true,
@@ -113,16 +113,23 @@ export class StatusCollector {
     };
 
     try {
+      const versionMatch = statusOutput.match(/OpenClaw\s+([\d.]+)/);
+      if (versionMatch) {
+        status.version = versionMatch[1];
+      }
+
+      const portMatch = statusOutput.match(/port=(\d+)/);
+      if (portMatch) {
+        status.port = parseInt(portMatch[1], 10);
+      }
+
       const configPath = join(process.env.HOME || '', '.openclaw', 'openclaw.json');
       if (existsSync(configPath)) {
         const config = JSON.parse(readFileSync(configPath, 'utf-8'));
-        
-        status.version = config.version || 'unknown';
-        status.port = config.gateway?.port || 8000;
 
         const doctorWarnings = this.collectDoctorWarnings(config);
         status.doctorWarnings = doctorWarnings;
-        
+
         if (doctorWarnings.some(w => w.severity === 'error')) {
           status.healthy = false;
         }
@@ -130,7 +137,7 @@ export class StatusCollector {
 
       const troubles = this.collectTroubles();
       status.troubles = troubles;
-      
+
       if (troubles.some(t => t.severity === 'error')) {
         status.healthy = false;
       }

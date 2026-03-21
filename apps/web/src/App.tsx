@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/Badge"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { EditNameDialog } from "@/components/EditNameDialog"
-import { Activity, Cpu, RefreshCw, Server, Plug, Clock, Pencil, AlertTriangle, AlertCircle, Info } from "lucide-react"
+import { Activity, Cpu, RefreshCw, Server, Plug, Clock, Pencil } from "lucide-react"
 import { ShrimpIcon } from "@/components/icons/ShrimpIcon"
 import { fetchDatabaseNodes, fetchStats, updateNodeName } from "@/lib/api"
 import { motion } from "framer-motion"
@@ -16,54 +16,19 @@ import type { OpenClawGatewayStatus as OpenClawGatewayStatusType } from "@/types
 function OpenClawGatewayStatusBadge({ status }: { status: string | OpenClawGatewayStatusType }) {
   if (typeof status === 'string') {
     return (
-      <Badge variant={status === 'running' ? "success" : "destructive"} className="whitespace-nowrap">
+      <Badge variant={status === 'running' ? "blue" : "destructive"} className="whitespace-nowrap">
         {status}
       </Badge>
     )
   }
 
-  const hasWarnings = status.doctorWarnings && status.doctorWarnings.length > 0;
-  const hasTroubles = status.troubles && status.troubles.length > 0;
-  const hasIssues = hasWarnings || hasTroubles;
-
-  const getSeverityIcon = () => {
-    if (!hasIssues) return null;
-    
-    const allWarnings = status.doctorWarnings || [];
-    const allTroubles = status.troubles || [];
-    
-    const hasErrors = [...allWarnings, ...allTroubles].some(
-      issue => issue.severity === 'error'
-    );
-    const hasWarningsOnly = [...allWarnings, ...allTroubles].some(
-      issue => issue.severity === 'warning'
-    );
-
-    if (hasErrors) {
-      return <AlertCircle className="h-3 w-3 mr-1" />;
-    } else if (hasWarningsOnly) {
-      return <AlertTriangle className="h-3 w-3 mr-1" />;
-    }
-    return <Info className="h-3 w-3 mr-1" />;
-  };
-
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-1">
-        <Badge 
-          variant={status.status === 'running' ? (status.healthy ? "success" : "default") : "destructive"} 
-          className="whitespace-nowrap"
-        >
-          {status.status}
-        </Badge>
-        {getSeverityIcon()}
-      </div>
-      {hasIssues && (
-        <div className="text-xs text-muted-foreground">
-          {(status.doctorWarnings?.length || 0) + (status.troubles?.length || 0)} issues
-        </div>
-      )}
-    </div>
+    <Badge
+      variant={status.status === 'running' ? "blue" : "destructive"}
+      className="whitespace-nowrap"
+    >
+      {status.status}
+    </Badge>
   )
 }
 

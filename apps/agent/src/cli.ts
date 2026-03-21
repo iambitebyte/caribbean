@@ -287,43 +287,13 @@ program
     }
 
     console.log(`📊 Gateway Status: ${gatewayStatus.status}`);
-    console.log(`🔗 Health: ${gatewayStatus.healthy ? '✅ Healthy' : '❌ Unhealthy'}`);
-    
+
     if (gatewayStatus.version) {
       console.log(`🏷️  Version: ${gatewayStatus.version}`);
     }
-    
+
     if (gatewayStatus.port) {
       console.log(`🔌 Port: ${gatewayStatus.port}`);
-    }
-
-    if (gatewayStatus.doctorWarnings && gatewayStatus.doctorWarnings.length > 0) {
-      console.log('\n⚠️  Doctor Warnings:');
-      gatewayStatus.doctorWarnings.forEach((warning, index) => {
-        const emoji = warning.severity === 'error' ? '❌' : warning.severity === 'warning' ? '⚠️' : 'ℹ️';
-        console.log(`  ${emoji} [${index + 1}] ${warning.type}`);
-        console.log(`     ${warning.message}`);
-        if (warning.suggestion) {
-          console.log(`     💡 Suggestion: ${warning.suggestion}`);
-        }
-      });
-    } else {
-      console.log('\n✅ No doctor warnings found');
-    }
-
-    if (gatewayStatus.troubles && gatewayStatus.troubles.length > 0) {
-      console.log('\n🚨 Troubles:');
-      gatewayStatus.troubles.forEach((trouble, index) => {
-        const emoji = trouble.severity === 'error' ? '❌' : trouble.severity === 'warning' ? '⚠️' : 'ℹ️';
-        console.log(`  ${emoji} [${index + 1}] ${trouble.type}`);
-        console.log(`     ${trouble.message}`);
-      });
-    } else {
-      console.log('\n✅ No troubles found');
-    }
-
-    if (!gatewayStatus.healthy) {
-      console.log('\n💡 Run `caribbean-agent fix-openclaw` to automatically fix common issues.');
     }
   });
 
