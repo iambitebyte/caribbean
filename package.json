@@ -6,7 +6,7 @@
   "packageManager": "pnpm@8.15.0",
   "scripts": {
     "dev": "pnpm --filter \"./apps/**\" dev",
-    "build": "pnpm --filter \"./apps/**\" build",
+    "build": "pnpm --filter './packages/**' build && pnpm --filter './apps/**' build",
     "test": "pnpm --filter \"./apps/**\" test",
     "lint": "pnpm --filter \"./apps/**\" lint",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules"
