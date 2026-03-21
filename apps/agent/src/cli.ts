@@ -3,6 +3,8 @@
 import { Command } from 'commander';
 import { randomUUID } from 'crypto';
 import { Agent } from './index.js';
+import { OpenClawConfigFixer } from './config-fixer.js';
+import { StatusCollector } from './collector.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
@@ -261,6 +263,152 @@ program
       removePid();
       process.exit(0);
     });
+  });
+
+program
+  .command('openclaw-status')
+  .description('Check OpenClaw gateway status and configuration')
+  .action(() => {
+    console.log('\n🔍 Checking OpenClaw Gateway Status...\n');
+
+    const collector = new StatusCollector();
+    const status = collector.collect();
+    const gatewayStatus = status.openclawGateway;
+
+    if (!gatewayStatus) {
+      console.log('❌ OpenClaw gateway status not available');
+      return;
+    }
+
+    if (typeof gatewayStatus === 'string') {
+      console.log(`Status: ${gatewayStatus}`);
+      console.log('\nCannot perform detailed check. OpenClaw gateway is not running.');
+      return;
+    }
+
+    console.log(`📊 Gateway Status: ${gatewayStatus.status}`);
+    console.log(`🔗 Health: ${gatewayStatus.healthy ? '✅ Healthy' : '❌ Unhealthy'}`);
+    
+    if (gatewayStatus.version) {
+      console.log(`🏷️  Version: ${gatewayStatus.version}`);
+    }
+    
+    if (gatewayStatus.port) {
+      console.log(`🔌 Port: ${gatewayStatus.port}`);
+    }
+
+    if (gatewayStatus.doctorWarnings && gatewayStatus.doctorWarnings.length > 0) {
+      console.log('\n⚠️  Doctor Warnings:');
+      gatewayStatus.doctorWarnings.forEach((warning, index) => {
+        const emoji = warning.severity === 'error' ? '❌' : warning.severity === 'warning' ? '⚠️' : 'ℹ️';
+        console.log(`  ${emoji} [${index + 1}] ${warning.type}`);
+        console.log(`     ${warning.message}`);
+        if (warning.suggestion) {
+          console.log(`     💡 Suggestion: ${warning.suggestion}`);
+        }
+      });
+    } else {
+      console.log('\n✅ No doctor warnings found');
+    }
+
+    if (gatewayStatus.troubles && gatewayStatus.troubles.length > 0) {
+      console.log('\n🚨 Troubles:');
+      gatewayStatus.troubles.forEach((trouble, index) => {
+        const emoji = trouble.severity === 'error' ? '❌' : trouble.severity === 'warning' ? '⚠️' : 'ℹ️';
+        console.log(`  ${emoji} [${index + 1}] ${trouble.type}`);
+        console.log(`     ${trouble.message}`);
+      });
+    } else {
+      console.log('\n✅ No troubles found');
+    }
+
+    if (!gatewayStatus.healthy) {
+      console.log('\n💡 Run `caribbean-agent fix-openclaw` to automatically fix common issues.');
+    }
+  });
+
+program
+  .command('fix-openclaw')
+  .description('Automatically fix common OpenClaw configuration issues')
+  .option('--dry-run', 'Show what would be fixed without making changes')
+  .option('--backup', 'Create a backup before fixing')
+  .action((options) => {
+    console.log('\n🔧 Fixing OpenClaw Configuration Issues...\n');
+
+    const collector = new StatusCollector();
+    const status = collector.collect();
+    const gatewayStatus = status.openclawGateway;
+
+    if (!gatewayStatus || typeof gatewayStatus === 'string') {
+      console.log(`❌ OpenClaw gateway is not running (${gatewayStatus || 'unknown status'})`);
+      console.log('   Please start OpenClaw gateway first.');
+      return;
+    }
+
+    const warnings = gatewayStatus.doctorWarnings || [];
+    const troubles = gatewayStatus.troubles || [];
+
+    if (warnings.length === 0 && troubles.length === 0) {
+      console.log('✅ No issues to fix. OpenClaw configuration looks good!');
+      return;
+    }
+
+    console.log(`Found ${warnings.length} warnings and ${troubles.length} troubles.\n`);
+
+    if (options.dryRun) {
+      console.log('🔍 Dry run mode - showing what would be fixed:\n');
+      
+      warnings.forEach(warning => {
+        console.log(`⚠️  Warning: ${warning.type}`);
+        console.log(`   ${warning.message}`);
+        if (warning.suggestion) {
+          console.log(`   💡 Would apply: ${warning.suggestion}`);
+        }
+      });
+
+      troubles.forEach(trouble => {
+        console.log(`🚨 Trouble: ${trouble.type}`);
+        console.log(`   ${trouble.message}`);
+      });
+
+      console.log('\nRun without --dry-run to apply fixes.');
+      return;
+    }
+
+    const fixer = new OpenClawConfigFixer();
+
+    if (options.backup) {
+      const backupPath = fixer.backupConfig();
+      console.log(`💾 Backup created at: ${backupPath}\n`);
+    }
+
+    const result = fixer.fixIssues(warnings, troubles);
+
+    if (result.success) {
+      console.log(`✅ ${result.message}`);
+      console.log('\n🔄 Please restart OpenClaw gateway for changes to take effect.');
+    } else {
+      console.log(`❌ Failed to fix issues: ${result.message}`);
+    }
+  });
+
+program
+  .command('validate-openclaw')
+  .description('Validate OpenClaw configuration file')
+  .action(() => {
+    console.log('\n🔍 Validating OpenClaw Configuration...\n');
+
+    const fixer = new OpenClawConfigFixer();
+    const result = fixer.validateConfig();
+
+    if (result.valid) {
+      console.log('✅ OpenClaw configuration is valid!');
+    } else {
+      console.log('❌ OpenClaw configuration has errors:\n');
+      result.errors.forEach((error, index) => {
+        console.log(`  ${index + 1}. ${error}`);
+      });
+    }
   });
 
 program.parse();
