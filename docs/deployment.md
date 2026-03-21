@@ -457,6 +457,10 @@ Location: `~/.caribbean/server.json`
     "type": "sqlite",
     "path": "./data/caribbean.db"
   },
+  "history": {
+    "retention": 5,
+    "description": "Keeps only the last 5 status records per node"
+  },
   "auth": {
     "enabled": true,
     "tokens": ["your-secret-token"]
@@ -599,6 +603,26 @@ CARIBBEAN_LOG_LEVEL=debug caribbean-server start
 CARIBBEAN_LOG_LEVEL=debug caribbean-agent start
 ```
 
+**Database History Retention**
+
+The database automatically manages historical data:
+
+- **Retention**: Only last 5 records per node in `status_history`
+- **Cleanup**: Automatic cleanup after each heartbeat
+- **Performance**: Keeps database size manageable
+
+To verify retention:
+
+```bash
+# Connect to SQLite
+sqlite3 data/caribbean.db
+
+# Check history count per node
+SELECT node_id, COUNT(*) as count
+FROM status_history
+GROUP BY node_id;
+```
+
 **Check connection status**
 
 ```bash
@@ -665,6 +689,9 @@ caribbean-server start
 - [ ] Implement rate limiting
 - [ ] Set up failover for high availability
 - [ ] Document emergency procedures
+- [ ] Verify OpenClaw Gateway status monitoring is working
+- [ ] Test database retention policy (last 5 records)
+- [ ] Set up alerts for Gateway offline status
 
 ## Support
 

@@ -1,7 +1,7 @@
-import { WebSocketServer, WebSocket } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import { NodeManager } from './node-manager.js';
-import type { Message, CommandMessage, ConnectMessage, HeartbeatMessage, AckMessage } from '@caribbean/protocol';
+import type { Message, CommandMessage, ConnectMessage, ConnectedMessage, HeartbeatMessage, AckMessage } from '@caribbean/protocol';
 
 export interface WebSocketServerConfig {
   port: number;
@@ -14,11 +14,17 @@ export class WebSocketHub {
   private wss: WebSocketServer | null = null;
   private nodeManager: NodeManager;
   private config: WebSocketServerConfig;
-  private clients: Map<string, any> = new Map();
+  private clients: Map<string, WebSocket> = new Map();
+  private onNodeUpdate?: (nodeId: string) => Promise<void>;
 
-  constructor(config: WebSocketServerConfig, nodeManager: NodeManager) {
+  constructor(
+    config: WebSocketServerConfig, 
+    nodeManager: NodeManager, 
+    onNodeUpdate?: (nodeId: string) => Promise<void>
+  ) {
     this.config = config;
     this.nodeManager = nodeManager;
+    this.onNodeUpdate = onNodeUpdate;
   }
 
   start(): Promise<void> {
@@ -52,6 +58,12 @@ export class WebSocketHub {
           if (nodeId) {
             this.nodeManager.disconnectNode(nodeId, 'Connection closed');
             this.clients.delete(nodeId);
+
+            if (this.onNodeUpdate) {
+              this.onNodeUpdate(nodeId).catch(err => {
+                console.error('[Server] Failed to sync node disconnect to database:', err);
+              });
+            }
           }
         });
 
@@ -106,24 +118,48 @@ export class WebSocketHub {
     setNodeId: (id: string) => void
   ): void {
     const { nodeId, name, tags, version } = message.payload;
-    console.log(`[Server] Node connecting: ${name} (${nodeId}) v${version}`);
 
-    this.nodeManager.registerNode(nodeId, name, tags);
-    this.clients.set(nodeId, ws);
-    setNodeId(nodeId);
+    // Generate a new node ID if not provided
+    let actualNodeId = nodeId;
+    if (!actualNodeId) {
+      actualNodeId = this.nodeManager.generateNodeId();
+      console.log(`[Server] Generated new node ID: ${actualNodeId}`);
+    }
 
-    const ack: AckMessage = {
-      type: 'ack',
+    console.log(`[Server] Node connecting: ${name} (${actualNodeId}) v${version}`);
+
+    this.nodeManager.registerNode(actualNodeId, name, tags);
+    this.clients.set(actualNodeId, ws);
+    setNodeId(actualNodeId);
+
+    // Send the connected message back to client
+    const connected: ConnectedMessage = {
+      type: 'connected',
       timestamp: new Date().toISOString(),
-      id: randomUUID(),
-      success: true
+      payload: {
+        nodeId: actualNodeId
+      }
     };
-    this.sendToNode(nodeId, ack);
+    this.sendToNode(actualNodeId, connected);
+
+    // Trigger immediate database sync
+    if (this.onNodeUpdate) {
+      this.onNodeUpdate(actualNodeId).catch(err => {
+        console.error('[Server] Failed to sync node to database:', err);
+      });
+    }
   }
 
   private handleHeartbeat(message: HeartbeatMessage): void {
     const { nodeId, status } = message.payload;
     this.nodeManager.updateNodeStatus(nodeId, status);
+
+    // Trigger immediate database sync on heartbeat
+    if (this.onNodeUpdate) {
+      this.onNodeUpdate(nodeId).catch(err => {
+        console.error('[Server] Failed to sync node to database:', err);
+      });
+    }
   }
 
   private handleAck(message: AckMessage): void {

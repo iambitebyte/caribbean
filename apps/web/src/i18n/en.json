@@ -1,0 +1,47 @@
+{
+  "header": {
+    "title": "OpenClaw Monitoring Center",
+    "subtitle": "Real-time Cluster Instance Monitoring and Management",
+    "refresh": "Refresh"
+  },
+  "stats": {
+    "registeredAgents": "Registered Agents",
+    "online": "Online",
+    "offline": "Offline",
+    "running": "Running",
+    "totalInstances": "Total Instances",
+    "instancesOnline": "Instances Online"
+  },
+  "nodes": {
+    "title": "Instance List",
+    "loading": "Loading...",
+    "refreshing": "Refreshing data...",
+    "noInstances": "No instance data",
+    "startAgent": "Start OpenClaw Agent to auto-register instances to database",
+    "noInstancesDb": "No instance data in database",
+    "noInstancesServer": "No node data on server",
+    "allOffline": "All instances are currently offline",
+    "status": "Status",
+    "instanceName": "Instance Name",
+    "id": "ID",
+    "tags": "Tags",
+    "connectionStatus": "Connection Status",
+    "lastSeen": "Last Seen",
+    "cpu": "CPU",
+    "uptime": "Uptime",
+    "connected": "Online",
+    "disconnected": "Offline",
+    "justNow": "Just now",
+    "minutesAgo": "minutes ago",
+    "hoursAgo": "hours ago",
+    "daysAgo": "days ago"
+  },
+  "errors": {
+    "title": "Connection Error",
+    "retry": "Retry",
+    "failedToConnect": "Failed to connect to server",
+    "retryMessage": "Please ensure the server is running, then click the retry button",
+    "dataError": "Display cached data",
+    "failedToLoadData": "Failed to load data"
+  }
+}

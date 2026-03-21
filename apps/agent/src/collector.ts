@@ -2,6 +2,7 @@ import type { NodeStatus, MemoryInfo, CpuInfo, AgentsInfo } from '@caribbean/sha
 import os from 'os';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { execSync } from 'child_process';
 
 export class StatusCollector {
   private startTime: Date;
@@ -17,7 +18,8 @@ export class StatusCollector {
       memory: this.collectMemory(),
       cpu: this.collectCpu(),
       agents: this.collectAgents(),
-      skills: this.collectSkills()
+      skills: this.collectSkills(),
+      openclawGateway: this.collectOpenClawGatewayStatus()
     };
   }
 
@@ -79,5 +81,20 @@ export class StatusCollector {
     }
     
     return ['shell', 'github', 'tmux', 'browser'];
+  }
+
+  private collectOpenClawGatewayStatus(): string {
+    try {
+      const gatewayPort = 8000;
+      const gatewayUrl = `http://localhost:${gatewayPort}/api/gateway/status`;
+      
+      execSync(`curl -s -o /dev/null -w "%{http_code}" --connect-timeout 3 --max-time 5 "${gatewayUrl}"`, {
+        stdio: 'ignore'
+      });
+      
+      return 'running';
+    } catch {
+      return 'stopped';
+    }
   }
 }

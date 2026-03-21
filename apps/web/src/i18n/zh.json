@@ -1,0 +1,47 @@
+{
+  "header": {
+    "title": "OpenClaw 监控中心",
+    "subtitle": "集群实例实时监控与管理",
+    "refresh": "刷新"
+  },
+  "stats": {
+    "registeredAgents": "已注册 Agent",
+    "online": "在线",
+    "offline": "离线",
+    "running": "运行中",
+    "totalInstances": "总实例数量",
+    "instancesOnline": "实例在线"
+  },
+  "nodes": {
+    "title": "实例列表",
+    "loading": "加载中...",
+    "refreshing": "正在刷新数据...",
+    "noInstances": "暂无实例数据",
+    "startAgent": "启动 OpenClaw Agent 后，实例将自动注册到数据库中",
+    "noInstancesDb": "数据库中没有实例数据",
+    "noInstancesServer": "服务器上暂无节点数据",
+    "allOffline": "所有实例当前离线",
+    "status": "状态",
+    "instanceName": "实例名称",
+    "id": "ID",
+    "tags": "标签",
+    "connectionStatus": "连接状态",
+    "lastSeen": "最后上线",
+    "cpu": "CPU",
+    "uptime": "运行时间",
+    "connected": "在线",
+    "disconnected": "离线",
+    "justNow": "刚刚",
+    "minutesAgo": "分钟前",
+    "hoursAgo": "小时前",
+    "daysAgo": "天前"
+  },
+  "errors": {
+    "title": "连接错误",
+    "retry": "重试",
+    "failedToConnect": "无法连接到服务器",
+    "retryMessage": "请确保服务器正在运行，然后点击重试按钮",
+    "dataError": "显示缓存数据",
+    "failedToLoadData": "Failed to load data"
+  }
+}
