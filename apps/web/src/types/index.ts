@@ -8,6 +8,29 @@ export interface NodeInfo {
   openclawStatus?: string;
 }
 
+export interface OpenClawGatewayStatus {
+  status: 'running' | 'stopped' | 'error';
+  version?: string;
+  pid?: number;
+  port?: number;
+  doctorWarnings?: DoctorWarning[];
+  troubles?: Trouble[];
+  healthy: boolean;
+}
+
+export interface DoctorWarning {
+  type: string;
+  message: string;
+  suggestion?: string;
+  severity: 'error' | 'warning' | 'info';
+}
+
+export interface Trouble {
+  type: string;
+  message: string;
+  severity: 'error' | 'warning' | 'info';
+}
+
 export interface NodeStatus {
   version: string;
   uptime: number;
@@ -20,7 +43,7 @@ export interface NodeStatus {
     list: string[];
   };
   skills: string[];
-  openclawGateway?: string;
+  openclawGateway?: string | OpenClawGatewayStatus;
 }
 
 export interface ApiResponse<T> {

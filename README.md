@@ -16,6 +16,8 @@ Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集
 - **🔄 实时双向通信** - WebSocket 保持长连接，支持状态上报和远程指令
 - **📊 可视化监控** - 基于 React + Vite 的现代化 Web 仪表盘
 - **⚡ Gateway 监控** - Agent 端主动验证 OpenClaw Gateway 状态
+- **🔍 智能诊断** - 自动检测 Doctor Warnings 和配置问题
+- **🔧 自动修复** - 一键修复常见 OpenClaw 配置问题
 - **🎯 智能告警** - 节点离线、资源不足自动通知
 - **🔒 安全传输** - 支持 TLS 加密和 Token 认证
 - **📦 一键部署** - 提供 CLI 工具和 Docker 镜像
@@ -192,7 +194,33 @@ npx tsx apps/server/src/cli.js status
 
 # 查看 Agent 配置状态
 npx tsx apps/agent/src/cli.js status
+
+# 检查 OpenClaw Gateway 详细状态
+npx tsx apps/agent/src/cli.js openclaw-status
+
+# 验证 OpenClaw 配置文件
+npx tsx apps/agent/src/cli.js validate-openclaw
 ```
+
+#### OpenClaw 配置管理
+
+```bash
+# 自动修复 OpenClaw 配置问题
+npx tsx apps/agent/src/cli.js fix-openclaw
+
+# 预览修复（不实际修改配置）
+npx tsx apps/agent/src/cli.js fix-openclaw --dry-run
+
+# 修复前创建备份
+npx tsx apps/agent/src/cli.js fix-openclaw --backup
+```
+
+**自动修复功能支持：**
+- Telegram 群组策略配置修复
+- 缺失的 skills 自动填充
+- 缺失的 agents 列表自动填充
+- Gateway 端口配置修复
+- 认证密钥自动生成
 
 #### 查看帮助
 
@@ -237,7 +265,9 @@ caribbean/
 │   ├── agent/              # 节点 Agent
 │   │   ├── src/
 │   │   │   ├── collector.ts    # 状态采集器
+│   │   │   ├── config-fixer.ts # OpenClaw 配置修复器
 │   │   │   ├── websocket.ts    # WebSocket 客户端
+│   │   │   ├── cli.ts          # CLI 命令
 │   │   │   └── index.ts        # 入口
 │   │   └── package.json
 │   │
@@ -264,6 +294,9 @@ caribbean/
 │
 ├── packages/
 │   ├── shared/             # 共享类型定义
+│   │   └── src/
+│   │       ├── node.ts             # 节点类型（包含 OpenClawGatewayStatus）
+│   │       └── index.ts
 │   └── protocol/           # 通信协议规范
 │
 ├── docs/                   # 文档
@@ -298,7 +331,28 @@ caribbean/
         "list": ["reef", "navigator", "shell"]
       },
       "skills": ["shell", "github", "tmux", "browser"],
-      "openclawGateway": "running"
+      "openclawGateway": {
+        "status": "running",
+        "version": "2026.3.2",
+        "pid": 1398337,
+        "port": 8000,
+        "healthy": false,
+        "doctorWarnings": [
+          {
+            "type": "telegram_group_policy",
+            "message": "channels.telegram.groupPolicy is \"allowlist\" but groupAllowFrom is empty",
+            "suggestion": "Add sender IDs to groupAllowFrom or set groupPolicy to \"open\"",
+            "severity": "warning"
+          }
+        ],
+        "troubles": [
+          {
+            "type": "auth_missing",
+            "message": "No authentication configured (apiKey or jwt)",
+            "severity": "warning"
+          }
+        ]
+      }
     }
   }
 }
@@ -318,6 +372,15 @@ caribbean/
   }
 }
 ```
+
+**支持的远程指令：**
+
+| 指令 | 参数 | 说明 |
+|------|------|------|
+| `restart_agent` | `{ agentId, force }` | 重启指定的 Agent |
+| `fix_openclaw_config` | `{ backup, dryRun }` | 修复 OpenClaw 配置 |
+| `get_openclaw_status` | - | 获取 OpenClaw 详细状态 |
+| `validate_openclaw` | - | 验证 OpenClaw 配置 |
 
 ## API 接口
 
@@ -396,6 +459,71 @@ caribbean/
   }
 }
 ```
+
+## OpenClaw 状态保障
+
+Caribbean Agent 提供了完整的 OpenClaw Gateway 状态监控和自动修复功能。
+
+### 状态监控
+
+Agent 会定期采集 OpenClaw Gateway 的状态，包括：
+
+- **运行状态**：running / stopped / error
+- **进程信息**：PID、端口、版本
+- **健康检查**：综合评估整体健康状态
+- **Doctor Warnings**：配置警告和建议
+- **Troubles**：配置问题和错误
+
+### 智能诊断
+
+自动检测以下问题：
+
+#### Doctor Warnings
+- Telegram 群组策略配置问题
+- 缺失的 skills 配置
+- 缺失的 agents 配置
+
+#### Troubles
+- Gateway 端口配置缺失
+- 认证配置缺失
+- PID 文件缺失
+- 配置文件解析错误
+
+### 自动修复
+
+使用 `fix-openclaw` 命令自动修复常见问题：
+
+```bash
+# 检查状态
+caribbean-agent openclaw-status
+
+# 自动修复（带备份）
+caribbean-agent fix-openclaw --backup
+
+# 预览修复（不实际修改）
+caribbean-agent fix-openclaw --dry-run
+```
+
+**支持的自动修复：**
+
+| 问题类型 | 自动修复方案 |
+|---------|-------------|
+| Telegram 群组策略为 allowlist 但列表为空 | 自动设置为 open 策略 |
+| 缺失 skills 配置 | 自动添加默认 skills（shell, github, tmux, browser） |
+| 缺失 agents 配置 | 自动添加默认 agents（reef, navigator, shell） |
+| Gateway 端口缺失 | 自动设置默认端口 8000 |
+| 认证配置缺失 | 自动生成 API Key |
+
+### Web UI 显示
+
+Dashboard 会实时显示每个节点的 OpenClaw 状态：
+
+- **健康状态**：绿色（健康）/ 黄色（警告）/ 红色（错误）
+- **问题数量**：显示当前警告和问题总数
+- **图标指示**：使用不同图标区分严重级别
+  - ⚠️ 警告级别问题
+  - ❌ 错误级别问题
+  - ℹ️ 信息级别问题
 
 ## 开发指南
 
@@ -500,8 +628,11 @@ kubectl apply -f k8s/agent-daemonset.yaml
 - [x] 服务管理命令（stop/restart）
 - [x] React Dashboard
 - [x] OpenClaw Gateway 状态监控
+- [x] OpenClaw 智能诊断（Doctor Warnings + Troubles）
+- [x] OpenClaw 配置自动修复
 - [x] 节点名称更新 API
 - [x] 数据库历史记录自动清理（保留最近 5 条）
+- [x] Web UI 详细状态显示（支持问题数量和严重级别）
 - [ ] 告警系统
 - [ ] 日志聚合
 - [ ] 性能分析
