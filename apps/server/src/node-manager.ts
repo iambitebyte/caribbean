@@ -11,15 +11,23 @@ export class NodeManager {
   }
 
   registerNode(nodeId: string, name: string, tags: string[]): void {
-    const node: NodeInfo = {
-      id: nodeId,
-      name,
-      tags,
-      connected: true,
-      lastSeen: new Date()
-    };
-    this.nodes.set(nodeId, node);
-    console.log(`[Server] Node registered: ${name} (${nodeId})`);
+    const existingNode = this.nodes.get(nodeId);
+    
+    if (existingNode) {
+      existingNode.connected = true;
+      existingNode.lastSeen = new Date();
+      console.log(`[Server] Node reconnected: ${existingNode.name} (${nodeId})`);
+    } else {
+      const node: NodeInfo = {
+        id: nodeId,
+        name,
+        tags,
+        connected: true,
+        lastSeen: new Date()
+      };
+      this.nodes.set(nodeId, node);
+      console.log(`[Server] Node registered: ${name} (${nodeId})`);
+    }
   }
 
   updateNodeStatus(nodeId: string, status: NodeStatus): void {
@@ -35,6 +43,7 @@ export class NodeManager {
     const node = this.nodes.get(nodeId);
     if (node) {
       node.connected = false;
+      node.openclawStatus = 'unknown';
       console.log(`[Server] Node disconnected: ${node.name} (${nodeId}) - ${reason}`);
     }
   }

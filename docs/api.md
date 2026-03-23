@@ -340,6 +340,20 @@ Connect to the WebSocket server:
 ws://your-server:8080/ws/agent
 ```
 
+### Connection Flow
+
+1. **Agent Connects**: Sends `connect` message with node information
+2. **Server Responds**: Sends `connected` message with assigned node ID
+3. **Immediate Heartbeat**: Agent sends immediate heartbeat with OpenClaw status check
+4. **Periodic Heartbeats**: Agent sends heartbeat every 30 seconds (configurable)
+5. **Server Updates**: Syncs node status to database after each heartbeat
+
+### Node State Preservation
+
+- **First Connection**: Server creates new node record with provided name, tags
+- **Reconnection**: Server updates only `connected` status and `last_seen`, preserves existing name and tags
+- **Disconnection**: Server sets `connected = false` and `openclaw_status = 'unknown'`
+
 ### Events
 
 #### Agent -> Server

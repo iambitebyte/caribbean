@@ -120,9 +120,51 @@ Server receives Gateway status via heartbeat and stores:
 
 Web Dashboard shows Gateway status with visual indicators:
 
-- **Running** → Green badge with ⚡ icon
-- **Stopped** → Red badge with ⚡ icon
-- **Unknown** → Gray dash `-`
+- **Online** (node connected):
+  - **Running** → Green badge with ⚡ icon
+  - **Stopped** → Red badge with ⚡ icon
+  - **Error** → Red badge
+- **Offline** (node disconnected):
+  - **Unknown** → Gray badge
+
+### Node State Management
+
+The system implements intelligent state management for node reconnections:
+
+#### Agent Reconnection Behavior
+
+When an agent reconnects to the server:
+
+1. **Node Registration**: Server checks if the node ID already exists in database
+   - **Exists**: Only updates `connected` status and `last_seen` timestamp
+   - **New node**: Creates a new record with full node information
+
+2. **Immediate Status Check**: Agent sends an immediate heartbeat upon connection
+   - Triggers instant OpenClaw Gateway status verification
+   - No waiting for the next heartbeat interval
+
+3. **State Preservation**: Existing node configuration is preserved:
+   - `name` - Node display name
+   - `tags` - Node tags
+   - Historical status data
+
+#### Node Disconnection Handling
+
+When a node disconnects:
+
+1. **Status Updates**:
+   - `connected` → `false`
+   - `openclaw_status` → `'unknown'`
+   - `last_seen` → Current timestamp
+
+2. **Frontend Display**:
+   - Connection status: Shows "disconnected"
+   - Gateway status: Always displays `"unknown"` badge
+   - CPU/Uptime: Shows `-` (no data available)
+
+3. **Data Preservation**:
+   - Historical records remain intact
+   - Previous status data retained for analysis
 
 ### Advantages of Agent-Side Verification
 

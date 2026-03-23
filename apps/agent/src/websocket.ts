@@ -52,6 +52,7 @@ export class WebSocketClient {
       console.log(`[Agent] Connected to ${this.config.url}`);
       this.sendConnect();
       this.startHeartbeat();
+      this.sendImmediateHeartbeat();
     });
 
     this.ws.on('message', (data: Buffer) => {
@@ -99,17 +100,26 @@ export class WebSocketClient {
 
   private startHeartbeat(): void {
     this.heartbeatTimer = setInterval(() => {
-      const message = {
-        type: 'heartbeat',
-        timestamp: new Date().toISOString(),
-        payload: {
-          nodeId: this.config.nodeId,
-          timestamp: new Date().toISOString(),
-          status: this.statusCollector()
-        }
-      };
-      this.send(message);
+      this.sendHeartbeat();
     }, this.config.heartbeatInterval);
+  }
+
+  private sendHeartbeat(): void {
+    const message = {
+      type: 'heartbeat',
+      timestamp: new Date().toISOString(),
+      payload: {
+        nodeId: this.config.nodeId,
+        timestamp: new Date().toISOString(),
+        status: this.statusCollector()
+      }
+    };
+    this.send(message);
+  }
+
+  private sendImmediateHeartbeat(): void {
+    console.log('[Agent] Sending immediate heartbeat with openclaw status check');
+    this.sendHeartbeat();
   }
 
   private stopHeartbeat(): void {

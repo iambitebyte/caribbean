@@ -447,10 +447,16 @@ function App() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {node.status?.openclawGateway ? (
-                              <OpenClawGatewayStatusBadge status={node.status.openclawGateway} />
+                            {node.connected ? (
+                              node.status?.openclawGateway ? (
+                                <OpenClawGatewayStatusBadge status={node.status.openclawGateway} />
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )
                             ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
+                              <Badge variant="secondary" className="whitespace-nowrap">
+                                unknown
+                              </Badge>
                             )}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">
