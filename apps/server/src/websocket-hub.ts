@@ -1,6 +1,7 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import { NodeManager } from './node-manager.js';
+import { DatabaseManager } from './database.js';
 import type { Message, CommandMessage, ConnectMessage, ConnectedMessage, HeartbeatMessage, AckMessage } from '@caribbean/protocol';
 
 export interface WebSocketServerConfig {
@@ -13,6 +14,7 @@ export interface WebSocketServerConfig {
 export class WebSocketHub {
   private wss: WebSocketServer | null = null;
   private nodeManager: NodeManager;
+  private database: DatabaseManager | null = null;
   private config: WebSocketServerConfig;
   private clients: Map<string, WebSocket> = new Map();
   private onNodeUpdate?: (nodeId: string) => Promise<void>;
@@ -20,10 +22,12 @@ export class WebSocketHub {
   constructor(
     config: WebSocketServerConfig, 
     nodeManager: NodeManager, 
+    database: DatabaseManager | null,
     onNodeUpdate?: (nodeId: string) => Promise<void>
   ) {
     this.config = config;
     this.nodeManager = nodeManager;
+    this.database = database;
     this.onNodeUpdate = onNodeUpdate;
   }
 
@@ -58,6 +62,12 @@ export class WebSocketHub {
           if (nodeId) {
             this.nodeManager.disconnectNode(nodeId, 'Connection closed');
             this.clients.delete(nodeId);
+
+            if (this.database) {
+              this.database.updateNodeDisconnected(nodeId).catch(err => {
+                console.error('[Server] Failed to update node disconnected status:', err);
+              });
+            }
 
             if (this.onNodeUpdate) {
               this.onNodeUpdate(nodeId).catch(err => {
@@ -112,11 +122,11 @@ export class WebSocketHub {
     }
   }
 
-  private handleConnect(
+  private async handleConnect(
     ws: WebSocket,
     message: ConnectMessage,
     setNodeId: (id: string) => void
-  ): void {
+  ): Promise<void> {
     const { nodeId, name, tags, version } = message.payload;
 
     // Generate a new node ID if not provided
@@ -128,6 +138,9 @@ export class WebSocketHub {
 
     console.log(`[Server] Node connecting: ${name} (${actualNodeId}) v${version}`);
 
+    // Check if node already exists in database
+    const existingNode = this.database ? await this.database.getNode(actualNodeId) : null;
+    
     this.nodeManager.registerNode(actualNodeId, name, tags);
     this.clients.set(actualNodeId, ws);
     setNodeId(actualNodeId);
@@ -142,7 +155,18 @@ export class WebSocketHub {
     };
     this.sendToNode(actualNodeId, connected);
 
-    // Trigger immediate database sync
+    // Trigger database sync - only update connected status if node exists
+    if (this.database) {
+      if (existingNode) {
+        await this.database.updateNodeConnected(actualNodeId);
+      } else {
+        const node = this.nodeManager.getNode(actualNodeId);
+        if (node) {
+          await this.database.saveNode(node);
+        }
+      }
+    }
+
     if (this.onNodeUpdate) {
       this.onNodeUpdate(actualNodeId).catch(err => {
         console.error('[Server] Failed to sync node to database:', err);

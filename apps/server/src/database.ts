@@ -197,6 +197,28 @@ export class DatabaseManager {
     );
   }
 
+  async updateNodeConnected(nodeId: string): Promise<void> {
+    if (!this.db) return;
+
+    const now = new Date().toISOString();
+
+    await this.db.run(
+      `UPDATE nodes SET connected = 1, last_seen = ?, updated_at = ? WHERE id = ?`,
+      [now, now, nodeId]
+    );
+  }
+
+  async updateNodeDisconnected(nodeId: string): Promise<void> {
+    if (!this.db) return;
+
+    const now = new Date().toISOString();
+
+    await this.db.run(
+      `UPDATE nodes SET connected = 0, openclaw_status = 'unknown', updated_at = ? WHERE id = ?`,
+      [now, nodeId]
+    );
+  }
+
   async deleteNode(nodeId: string): Promise<void> {
     if (!this.db) return;
 

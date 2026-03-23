@@ -43,6 +43,7 @@ export class CaribbeanServer {
           : undefined
       },
       this.nodeManager,
+      null,
       async (nodeId: string) => {
         if (this.database) {
           await this.database.saveNode(this.nodeManager.getNode(nodeId)!);
@@ -52,6 +53,10 @@ export class CaribbeanServer {
 
     if (this.config.database) {
       this.database = new DatabaseManager(this.config.database);
+    }
+
+    if (this.database) {
+      (this.websocketHub as any).database = this.database;
     }
 
     if (this.config.api) {
