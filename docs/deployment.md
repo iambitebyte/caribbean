@@ -605,11 +605,14 @@ CARIBBEAN_LOG_LEVEL=debug caribbean-agent start
 
 **Database History Retention**
 
-The database automatically manages historical data:
+The database automatically manages historical data and node configuration:
 
 - **Retention**: Only last 5 records per node in `status_history`
 - **Cleanup**: Automatic cleanup after each heartbeat
 - **Performance**: Keeps database size manageable
+- **Configuration Persistence**: Node `name` and `tags` are permanently stored
+- **Server Restart Resilience**: After server restart, nodes reconnect with their saved configuration
+- **Custom Names**: Node names modified via Web Dashboard persist across server restarts
 
 To verify retention:
 

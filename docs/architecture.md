@@ -129,24 +129,31 @@ Web Dashboard shows Gateway status with visual indicators:
 
 ### Node State Management
 
-The system implements intelligent state management for node reconnections:
+The system implements intelligent state management for node reconnections with persistent configuration storage:
 
 #### Agent Reconnection Behavior
 
 When an agent reconnects to the server:
 
 1. **Node Registration**: Server checks if the node ID already exists in database
-   - **Exists**: Only updates `connected` status and `last_seen` timestamp
-   - **New node**: Creates a new record with full node information
+    - **Exists**: Loads stored `name` and `tags` from database, only updates `connected` status and `last_seen` timestamp
+    - **New node**: Creates a new record with full node information from client message
 
 2. **Immediate Status Check**: Agent sends an immediate heartbeat upon connection
-   - Triggers instant OpenClaw Gateway status verification
-   - No waiting for the next heartbeat interval
+    - Triggers instant OpenClaw Gateway status verification
+    - No waiting for the next heartbeat interval
 
-3. **State Preservation**: Existing node configuration is preserved:
-   - `name` - Node display name
-   - `tags` - Node tags
-   - Historical status data
+3. **State Preservation**: Existing node configuration is completely preserved:
+    - `name` - Node display name (custom names are permanently saved)
+    - `tags` - Node tags (survives server restarts)
+    - Historical status data
+
+**Important Notes**:
+- After server restart, in-memory node registry is cleared
+- When nodes reconnect, server loads their configuration (name, tags, etc.) from database
+- Custom node names set in Web Dashboard are permanently saved and persist across server restarts
+- Node names are NOT overwritten by reconnection, heartbeat, or server restart
+- The `saveNode` method intelligently preserves database name for existing nodes while updating status
 
 #### Node Disconnection Handling
 

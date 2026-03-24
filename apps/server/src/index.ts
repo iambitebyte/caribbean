@@ -46,7 +46,10 @@ export class CaribbeanServer {
       null,
       async (nodeId: string) => {
         if (this.database) {
-          await this.database.saveNode(this.nodeManager.getNode(nodeId)!);
+          const node = this.nodeManager.getNode(nodeId);
+          if (node) {
+            await this.database.saveNode(node);
+          }
         }
       }
     );
