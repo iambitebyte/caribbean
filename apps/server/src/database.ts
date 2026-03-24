@@ -95,20 +95,43 @@ export class DatabaseManager {
     const tagsJson = JSON.stringify(node.tags);
     const statusJson = node.status ? JSON.stringify(node.status) : null;
 
-    await this.db.run(
-      `INSERT OR REPLACE INTO nodes (id, name, tags, connected, last_seen, status, openclaw_status, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        node.id,
-        node.name,
-        tagsJson,
-        node.connected ? 1 : 0,
-        node.lastSeen.toISOString(),
-        statusJson,
-        node.openclawStatus || 'unknown',
-        now
-      ]
+    // Check if node exists
+    const existingNode = await this.db.get(
+      `SELECT id, name FROM nodes WHERE id = ?`,
+      [node.id]
     );
+
+    if (existingNode) {
+      // Update existing node - only update necessary fields, preserve name
+      await this.db.run(
+        `UPDATE nodes SET tags = ?, connected = ?, last_seen = ?, status = ?, openclaw_status = ?, updated_at = ? WHERE id = ?`,
+        [
+          tagsJson,
+          node.connected ? 1 : 0,
+          node.lastSeen.toISOString(),
+          statusJson,
+          node.openclawStatus || 'unknown',
+          now,
+          node.id
+        ]
+      );
+    } else {
+      // Insert new node
+      await this.db.run(
+        `INSERT INTO nodes (id, name, tags, connected, last_seen, status, openclaw_status, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          node.id,
+          node.name,
+          tagsJson,
+          node.connected ? 1 : 0,
+          node.lastSeen.toISOString(),
+          statusJson,
+          node.openclawStatus || 'unknown',
+          now
+        ]
+      );
+    }
 
     // 只保留每个节点的最近 5 条历史记录
     if (node.status && statusJson) {

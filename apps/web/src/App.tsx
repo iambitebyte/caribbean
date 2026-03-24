@@ -394,7 +394,6 @@ function App() {
                             <div className="flex items-center justify-center">
                               {node.connected ? (
                                 <motion.div
-                                  className="text-green-500"
                                   animate={{
                                     scale: [1, 1.1, 1],
                                     rotate: [0, 10, -10, 0]
@@ -404,14 +403,21 @@ function App() {
                                     repeat: Infinity,
                                     ease: "easeInOut"
                                   }}
-                                 >
-                                   <ShrimpIcon size={24} />
-                                 </motion.div>
-                               ) : (
-                                 <div className="text-gray-400">
-                                   <ShrimpIcon size={24} animated={false} />
-                                 </div>
-                               )}
+                                >
+                                  <img 
+                                    src="/img/openclaw-logo.svg" 
+                                    alt="OpenClaw Logo" 
+                                    className="h-4 w-4"
+                                  />
+                                </motion.div>
+                              ) : (
+                                <img 
+                                  src="/img/openclaw-logo.svg" 
+                                  alt="OpenClaw Logo" 
+                                  className="h-4 w-4 opacity-50"
+                                  style={{ filter: 'grayscale(100%)' }}
+                                />
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>

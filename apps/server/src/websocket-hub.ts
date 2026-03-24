@@ -133,15 +133,16 @@ export class WebSocketHub {
     let actualNodeId = nodeId;
     if (!actualNodeId) {
       actualNodeId = this.nodeManager.generateNodeId();
-      console.log(`[Server] Generated new node ID: ${actualNodeId}`);
     }
-
-    console.log(`[Server] Node connecting: ${name} (${actualNodeId}) v${version}`);
 
     // Check if node already exists in database
     const existingNode = this.database ? await this.database.getNode(actualNodeId) : null;
-    
-    this.nodeManager.registerNode(actualNodeId, name, tags);
+
+    // Use database name/tags if exists, otherwise use client-provided ones
+    const nodeName = existingNode ? existingNode.name : name;
+    const nodeTags = existingNode ? existingNode.tags : tags;
+
+    this.nodeManager.registerNode(actualNodeId, nodeName, nodeTags);
     this.clients.set(actualNodeId, ws);
     setNodeId(actualNodeId);
 
