@@ -86,7 +86,10 @@ Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集
 cd apps/server
 pnpm run build:all
 
-# 2. 启动 Server
+# 2. 初始化配置
+pnpm init
+
+# 3. 启动 Server
 npm start
 ```
 

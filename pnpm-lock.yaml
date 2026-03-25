@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@caribbean/server':
+        specifier: workspace:^
+        version: link:apps/server
     devDependencies:
       tsx:
         specifier: ^4.21.0
