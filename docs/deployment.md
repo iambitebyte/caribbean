@@ -38,10 +38,10 @@ pnpm build
 
 ```bash
 # Initialize server configuration
-npx @caribbean/server init
+pnpm init
 
 # Start the server
-npx @caribbean/server start
+npm start
 ```
 
 The server will start on:

@@ -9,7 +9,8 @@
     "build": "pnpm --filter './packages/**' build && pnpm --filter './apps/**' build",
     "test": "pnpm --filter \"./apps/**\" test",
     "lint": "pnpm --filter \"./apps/**\" lint",
-    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules"
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
+    "init": "pnpm --filter @caribbean/server exec caribbean-server init"
   },
   "keywords": [
     "cluster",
@@ -26,5 +27,8 @@
   ],
   "devDependencies": {
     "tsx": "^4.21.0"
+  },
+  "dependencies": {
+    "@caribbean/server": "workspace:^"
   }
 }
