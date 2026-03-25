@@ -1,6 +1,7 @@
 import WebSocket from 'ws';
 import type { Message } from '@caribbean/protocol';
 import type { NodeStatus } from '@caribbean/shared';
+import os from 'os';
 
 export interface WebSocketClientConfig {
   url: string;
@@ -92,7 +93,8 @@ export class WebSocketClient {
         nodeId: this.config.nodeId,
         name: this.config.name,
         tags: this.config.tags,
-        version: this.config.version
+        version: this.config.version,
+        clientIp: this.getLocalIp()
       }
     };
     this.send(message);
@@ -148,6 +150,20 @@ export class WebSocketClient {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
     }
+  }
+
+  private getLocalIp(): string {
+    const interfaces = os.networkInterfaces();
+    for (const name in interfaces) {
+      const iface = interfaces[name];
+      if (!iface) continue;
+      for (const alias of iface) {
+        if (alias.family === 'IPv4' && !alias.internal) {
+          return alias.address;
+        }
+      }
+    }
+    return '127.0.0.1';
   }
 
   private handleMessage(message: Message): void {

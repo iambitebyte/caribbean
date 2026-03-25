@@ -33,7 +33,16 @@ Caribbean is an OpenClaw cluster management hub that provides real-time monitori
 | **Bundler** | Vite 5 | Fast development and production builds |
 | **Styling** | Tailwind CSS 3 | Utility-first CSS framework |
 | **Icons** | Lucide React | Icon library |
+| **i18n** | i18next | Internationalization support |
 | **Language** | TypeScript 5+ | Type-safe frontend code |
+
+**Dashboard Features:**
+- Real-time node list view with automatic updates
+- Connection status indicators (online/offline)
+- Gateway status monitoring with health badges
+- CPU usage and uptime display
+- Custom node name editing
+- Bilingual support (English/Chinese)
 
 ### Shared Packages
 
@@ -74,6 +83,8 @@ Caribbean is an OpenClaw cluster management hub that provides real-time monitori
 │  │                   (SQLite)                               │  │
 │  │  - nodes table (node registry)                          │  │
 │  │  - status_history table (time-series, last 5 records)   │  │
+│  │  - migrations table (schema version tracking)             │  │
+│  │  - Auto-migration system                               │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -318,3 +329,96 @@ If the web dashboard grows beyond a single-page monitoring view, consider:
 4. **Team collaboration features**: Multi-user dashboards, permissions, etc.
 
 Until then, the current architecture remains optimal.
+
+## IP Address Collection and Display
+
+### Agent-Side IP Detection
+
+Each Agent automatically detects and reports its local IP address:
+
+```typescript
+private getLocalIp(): string {
+  const interfaces = os.networkInterfaces();
+  for (const name in interfaces) {
+    const iface = interfaces[name];
+    if (!iface) continue;
+    for (const alias of iface) {
+      if (alias.family === 'IPv4' && !alias.internal) {
+        return alias.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+```
+
+- **Detection Method**: Uses Node.js `os.networkInterfaces()` API
+- **Selection Criteria**: First non-internal IPv4 address
+- **Fallback**: Returns `127.0.0.1` if no suitable address found
+- **Reporting**: Sent in initial `connect` message to server
+
+### Server-Side Storage
+
+- **Storage**: IP address stored in `nodes.client_ip` column
+- **Persistence**: Saved to database and restored on reconnect
+- **Update**: Updated on each node reconnection
+- **Fallback**: Uses previously saved IP if new detection fails
+
+### Dashboard Display
+
+Web Dashboard shows the IP address in the instance list:
+
+| Feature | Description |
+|---------|-------------|
+| **Column**: "IP Address" | Displays node's local IP |
+| **Fallback**: `-` | Shown if IP not available |
+| **Real-time**: Yes | Updates on node reconnection |
+| **Persistence**: Yes | IP saved across server restarts |
+
+## Database Migration System
+
+### Overview
+
+Caribbean implements an automated migration system to manage database schema changes without manual intervention.
+
+### Migration Process
+
+1. **Startup Check**: Server connects to database
+2. **Schema Init**: Creates `migrations` table if not exists
+3. **Migration Run**: Checks and executes pending migrations
+4. **Version Tracking**: Records executed migrations
+5. **Continue**: Server starts normally
+
+### Adding New Migrations
+
+```typescript
+private getMigrations(): Migration[] {
+  return [
+    {
+      version: 1,
+      name: 'add_client_ip_column',
+      up: `ALTER TABLE nodes ADD COLUMN client_ip TEXT;`
+    },
+    {
+      version: 2,
+      name: 'add_new_feature',
+      up: `ALTER TABLE nodes ADD COLUMN new_field TEXT DEFAULT 'default';`
+    }
+  ];
+}
+```
+
+### Migration Rules
+
+- **Unique Version**: Each migration must have a unique, incrementing version number
+- **Descriptive Name**: Clear description of what the migration does
+- **Idempotent**: Each migration runs only once
+- **Safe**: Migrations should be designed to not break existing data
+- **Tested**: Test migrations on backup database before deployment
+
+### Benefits
+
+- ✅ **Zero Downtime**: Migrations run on startup automatically
+- ✅ **Backward Compatible**: Old databases upgraded seamlessly
+- ✅ **Version Controlled**: Track which migrations have been applied
+- ✅ **No Manual Steps**: No need for users to run SQL scripts

@@ -62,6 +62,7 @@ GET /api/nodes
       "tags": ["prod", "gpu"],
       "connected": true,
       "lastSeen": "2026-03-17T22:37:00Z",
+      "clientIp": "192.168.1.100",
       "status": {
         "version": "0.1.0",
         "uptime": 86400,

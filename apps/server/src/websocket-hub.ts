@@ -127,7 +127,7 @@ export class WebSocketHub {
     message: ConnectMessage,
     setNodeId: (id: string) => void
   ): Promise<void> {
-    const { nodeId, name, tags, version } = message.payload;
+    const { nodeId, name, tags, version, clientIp } = message.payload;
 
     // Generate a new node ID if not provided
     let actualNodeId = nodeId;
@@ -141,8 +141,9 @@ export class WebSocketHub {
     // Use database name/tags if exists, otherwise use client-provided ones
     const nodeName = existingNode ? existingNode.name : name;
     const nodeTags = existingNode ? existingNode.tags : tags;
+    const nodeClientIp = existingNode ? (clientIp || existingNode.clientIp) : clientIp;
 
-    this.nodeManager.registerNode(actualNodeId, nodeName, nodeTags);
+    this.nodeManager.registerNode(actualNodeId, nodeName, nodeTags, nodeClientIp);
     this.clients.set(actualNodeId, ws);
     setNodeId(actualNodeId);
 
@@ -159,7 +160,7 @@ export class WebSocketHub {
     // Trigger database sync - only update connected status if node exists
     if (this.database) {
       if (existingNode) {
-        await this.database.updateNodeConnected(actualNodeId);
+        await this.database.updateNodeConnected(actualNodeId, nodeClientIp);
       } else {
         const node = this.nodeManager.getNode(actualNodeId);
         if (node) {

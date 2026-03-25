@@ -30,6 +30,7 @@ export interface ConnectMessage extends BaseMessage {
     name: string;
     tags: string[];
     version: string;
+    clientIp?: string;
   };
 }
 

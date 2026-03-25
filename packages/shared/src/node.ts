@@ -55,4 +55,5 @@ export interface NodeInfo {
   lastSeen: Date;
   status?: NodeStatus;
   openclawStatus?: string;
+  clientIp?: string;
 }
