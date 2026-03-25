@@ -626,6 +626,43 @@ FROM status_history
 GROUP BY node_id;
 ```
 
+**Database Migrations**
+
+The system includes an automated migration system to manage database schema changes:
+
+- **Automatic Execution**: Migrations run automatically on server startup
+- **Version Tracking**: Tracks which migrations have been executed in the `migrations` table
+- **Backward Compatible**: Existing databases are upgraded seamlessly without manual intervention
+- **Idempotent**: Each migration runs only once, even if server restarts multiple times
+
+**View Applied Migrations:**
+
+```bash
+# Connect to SQLite
+sqlite3 data/caribbean.db
+
+# View migration history
+SELECT version, name, executed_at FROM migrations ORDER BY version;
+```
+
+**Manual Migration (if needed):**
+
+If you need to manually check or fix migration state:
+
+```bash
+# Stop server
+caribbean-server stop
+
+# Backup database
+cp data/caribbean.db data/caribbean.db.backup
+
+# Check migration table
+sqlite3 data/caribbean.db "SELECT * FROM migrations;"
+
+# Start server again (will run any pending migrations)
+caribbean-server start
+```
+
 **Check connection status**
 
 ```bash
@@ -695,6 +732,9 @@ caribbean-server start
 - [ ] Verify OpenClaw Gateway status monitoring is working
 - [ ] Test database retention policy (last 5 records)
 - [ ] Set up alerts for Gateway offline status
+- [ ] Verify database migrations run successfully on startup
+- [ ] Backup database before major version upgrades
+- [ ] Test database upgrade path from previous version
 
 ## Support
 

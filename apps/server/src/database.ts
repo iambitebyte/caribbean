@@ -1,13 +1,19 @@
 import { open, Database } from 'sqlite';
 import type { NodeInfo } from '@caribbean/shared';
-import { existsSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { existsSync, mkdirSync, readFileSync, readdirSync } from 'fs';
+import { dirname, join } from 'path';
 import sqlite3 from 'sqlite3';
 
 export interface DatabaseConfig {
   type: 'sqlite' | 'postgresql';
   path?: string;
   url?: string;
+}
+
+export interface Migration {
+  version: number;
+  name: string;
+  up: string;
 }
 
 export class DatabaseManager {
@@ -33,6 +39,7 @@ export class DatabaseManager {
       });
 
       await this.initSchema();
+      await this.runMigrations();
     }
   }
 
@@ -40,6 +47,12 @@ export class DatabaseManager {
     if (!this.db) return;
 
     await this.db.exec(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        version INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        executed_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE TABLE IF NOT EXISTS nodes (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -69,6 +82,39 @@ export class DatabaseManager {
 
     // 初始化后，清理过多的历史记录
     await this.cleanupHistory();
+  }
+
+  private async runMigrations(): Promise<void> {
+    if (!this.db) return;
+
+    const migrations = this.getMigrations();
+
+    for (const migration of migrations) {
+      const executed = await this.db.get(
+        `SELECT version FROM migrations WHERE version = ?`,
+        [migration.version]
+      );
+
+      if (!executed) {
+        console.log(`[Database] Running migration: ${migration.name}`);
+        await this.db.exec(migration.up);
+        await this.db.run(
+          `INSERT INTO migrations (version, name) VALUES (?, ?)`,
+          [migration.version, migration.name]
+        );
+        console.log(`[Database] Migration completed: ${migration.name}`);
+      }
+    }
+  }
+
+  private getMigrations(): Migration[] {
+    return [
+      {
+        version: 1,
+        name: 'add_client_ip_column',
+        up: `ALTER TABLE nodes ADD COLUMN client_ip TEXT;`
+      }
+    ];
   }
 
   async cleanupHistory(): Promise<void> {
@@ -104,13 +150,14 @@ export class DatabaseManager {
     if (existingNode) {
       // Update existing node - only update necessary fields, preserve name
       await this.db.run(
-        `UPDATE nodes SET tags = ?, connected = ?, last_seen = ?, status = ?, openclaw_status = ?, updated_at = ? WHERE id = ?`,
+        `UPDATE nodes SET tags = ?, connected = ?, last_seen = ?, status = ?, openclaw_status = ?, client_ip = ?, updated_at = ? WHERE id = ?`,
         [
           tagsJson,
           node.connected ? 1 : 0,
           node.lastSeen.toISOString(),
           statusJson,
           node.openclawStatus || 'unknown',
+          node.clientIp || null,
           now,
           node.id
         ]
@@ -118,8 +165,8 @@ export class DatabaseManager {
     } else {
       // Insert new node
       await this.db.run(
-        `INSERT INTO nodes (id, name, tags, connected, last_seen, status, openclaw_status, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO nodes (id, name, tags, connected, last_seen, status, openclaw_status, client_ip, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           node.id,
           node.name,
@@ -128,6 +175,7 @@ export class DatabaseManager {
           node.lastSeen.toISOString(),
           statusJson,
           node.openclawStatus || 'unknown',
+          node.clientIp || null,
           now
         ]
       );
@@ -220,15 +268,22 @@ export class DatabaseManager {
     );
   }
 
-  async updateNodeConnected(nodeId: string): Promise<void> {
+  async updateNodeConnected(nodeId: string, clientIp?: string): Promise<void> {
     if (!this.db) return;
 
     const now = new Date().toISOString();
 
-    await this.db.run(
-      `UPDATE nodes SET connected = 1, last_seen = ?, updated_at = ? WHERE id = ?`,
-      [now, now, nodeId]
-    );
+    if (clientIp) {
+      await this.db.run(
+        `UPDATE nodes SET connected = 1, last_seen = ?, client_ip = ?, updated_at = ? WHERE id = ?`,
+        [now, clientIp, now, nodeId]
+      );
+    } else {
+      await this.db.run(
+        `UPDATE nodes SET connected = 1, last_seen = ?, updated_at = ? WHERE id = ?`,
+        [now, now, nodeId]
+      );
+    }
   }
 
   async updateNodeDisconnected(nodeId: string): Promise<void> {
@@ -259,7 +314,8 @@ export class DatabaseManager {
       connected: row.connected === 1,
       lastSeen: new Date(row.last_seen),
       status: row.status ? JSON.parse(row.status) : undefined,
-      openclawStatus: row.openclaw_status || 'unknown'
+      openclawStatus: row.openclaw_status || 'unknown',
+      clientIp: row.client_ip || undefined
     };
   }
 

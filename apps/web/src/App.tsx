@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { NodeInfo } from "@/types"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card"
+import { Card, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table"
 import { Badge } from "@/components/ui/Badge"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { EditNameDialog } from "@/components/EditNameDialog"
-import { Activity, Cpu, RefreshCw, Server, Plug, Clock, Pencil } from "lucide-react"
-import { ShrimpIcon } from "@/components/icons/ShrimpIcon"
+import { Cpu, RefreshCw, Server, Clock, Pencil } from "lucide-react"
 import { fetchDatabaseNodes, fetchStats, updateNodeName } from "@/lib/api"
 import { motion } from "framer-motion"
 import type { OpenClawGatewayStatus as OpenClawGatewayStatusType } from "@/types"
@@ -143,10 +142,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div>
-                <h1 className="text-2xl font-bold">{t('header.title')}</h1>
-                <p className="text-sm text-muted-foreground">{t('header.subtitle')}</p>
-              </div>
+              <h1 className="text-2xl font-bold">{t('header.title')}</h1>
             </div>
             <div className="flex items-center gap-3">
               <LanguageSwitcher />
@@ -164,7 +160,7 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Show connection warning if refresh failed after initial load */}
         {error && hasLoadedOnce && (
           <motion.div
@@ -178,108 +174,8 @@ function App() {
           </motion.div>
         )}
 
-        {(stats || hasLoadedOnce) && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
-              <Card className="hover:shadow-lg transition-shadow duration-300">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Server className="h-4 w-4" />
-                    {t('stats.registeredAgents')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <motion.div
-                    className="text-3xl font-bold"
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 10 }}
-                  >
-                    {stats ? stats.total : nodes.length}
-                  </motion.div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex items-center gap-1 text-green-500">
-                      <Plug className="h-3 w-3" />
-                      <span className="text-xs text-green-500">
-                        {stats ? stats.connected : nodes.filter(n => n.connected).length} {t('stats.online')}
-                      </span>
-                    </div>
-                    {(stats ? stats.disconnected : nodes.length - nodes.filter(n => n.connected).length) > 0 && (
-                      <div className="flex items-center gap-1 text-red-500">
-                        <span className="text-xs text-red-500">
-                          {stats ? stats.disconnected : nodes.length - nodes.filter(n => n.connected).length} {t('stats.offline')}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-            >
-              <Card className="hover:shadow-lg transition-shadow duration-300">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Activity className="h-4 w-4" />
-                    {t('stats.running')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <motion.div
-                    className="text-3xl font-bold text-green-500"
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 10 }}
-                  >
-                    {nodes.filter(n => n.connected).length}
-                  </motion.div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {nodes.filter(n => n.connected).length} / {nodes.length} {t('stats.instancesOnline')}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.3 }}
-            >
-              <Card className="hover:shadow-lg transition-shadow duration-300">
-                 <CardHeader className="pb-2">
-                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                     <ShrimpIcon size={16} />
-                     OpenClaw {t('stats.totalInstances')}
-                   </CardTitle>
-                 </CardHeader>
-                <CardContent>
-                  <motion.div
-                    className="text-3xl font-bold text-blue-500"
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 10 }}
-                  >
-                    {nodes.length}
-                  </motion.div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t('stats.totalInstances')}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
-        )}
-
-        <div className="mb-4">
-          <h2 className="text-xl font-semibold mb-2">{t('nodes.title')}</h2>
+        <div>
+          <h2 className="text-xl font-semibold mb-8">{t('nodes.title')}</h2>
 
           {/* First time loading */}
           {loading && !hasLoadedOnce && (
@@ -291,27 +187,17 @@ function App() {
               {t('nodes.loading')}
             </motion.div>
           )}
-
-          {/* Refreshing with existing data */}
-          {loading && hasLoadedOnce && nodes.length > 0 && (
-            <motion.div
-              className="text-sm text-muted-foreground"
-              animate={{ opacity: 0.6 }}
-            >
-              <RefreshCw className="h-4 w-4 inline mr-2 animate-spin" />
-              {t('nodes.refreshing')}
-            </motion.div>
-          )}
         </div>
 
         {/* No nodes loaded yet */}
         {nodes.length === 0 && !loading && !hasLoadedOnce ? (
           <motion.div
+            className="rounded-lg overflow-hidden"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Card>
+            <Card className="rounded-none">
               <CardContent className="py-12">
                 <div className="text-center">
                   <motion.div
@@ -333,11 +219,12 @@ function App() {
         ) : nodes.length === 0 ? (
           /* Loaded but no nodes */
           <motion.div
+            className="rounded-lg overflow-hidden"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Card>
+            <Card className="rounded-none">
               <CardContent className="py-12">
                 <div className="text-center">
                   <p className="text-muted-foreground mb-2">{t('nodes.noInstancesDb')}</p>
@@ -364,11 +251,12 @@ function App() {
             )}
 
             <motion.div
+              className="rounded-lg overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <Card>
+              <Card className="rounded-none">
                 <CardContent className="p-0">
                   <Table>
                     <TableHeader>
@@ -376,7 +264,7 @@ function App() {
                         <TableHead className="w-16">{t('nodes.status')}</TableHead>
                         <TableHead>{t('nodes.instanceName')}</TableHead>
                         <TableHead>{t('nodes.id')}</TableHead>
-                        <TableHead>{t('nodes.tags')}</TableHead>
+                        <TableHead>{t('nodes.clientIp')}</TableHead>
                         <TableHead>{t('nodes.connectionStatus')}</TableHead>
                         <TableHead>Gateway</TableHead>
                         <TableHead>{t('nodes.lastSeen')}</TableHead>
@@ -434,18 +322,8 @@ function App() {
                             </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">{node.id}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {node.tags && node.tags.length > 0 ? (
-                                node.tags.map((tag: string, i: number) => (
-                                  <Badge key={i} variant="secondary" className="text-xs">
-                                    {tag}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-muted-foreground text-sm">-</span>
-                              )}
-                            </div>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {node.clientIp || '-'}
                           </TableCell>
                           <TableCell>
                             <Badge variant={node.connected ? "success" : "destructive"} className="whitespace-nowrap">

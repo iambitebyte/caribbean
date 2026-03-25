@@ -10,6 +10,8 @@
 
 Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集群管理解决方案。它采用轻量级 Agent + 中心化 Server 架构，通过 WebSocket 实现双向实时通信，让你能够轻松监控和管理分布在多台服务器上的 OpenClaw 节点。
 
+Web Dashboard 提供简洁的实例列表视图，实时显示所有节点的状态信息。
+
 ### ✨ 核心特性
 
 - **🚀 轻量级 Agent** - 单二进制文件，资源占用极低 (< 50MB 内存)
@@ -23,6 +25,8 @@ Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集
 - **📦 一键部署** - 提供 CLI 工具和 Docker 镜像
 - **💾 状态持久化** - 节点重连时保留原有配置，无需重新注册
 - **⚡ 即时状态检查** - Agent 上线后立即执行 Gateway 状态检查
+- **🌐 IP 地址监控** - 自动采集并显示 Agent 本地 IP 地址
+- **🔄 数据库迁移** - 自动化的数据库版本管理和迁移系统
 
 ## 架构设计
 
@@ -131,6 +135,15 @@ caribbean-agent start
 
 - WebSocket 服务：`ws://localhost:8080`（Agent 连接）
 - REST API + Web UI：`http://localhost:3000`
+
+**Web Dashboard 功能：**
+- 实时显示所有注册节点的状态列表
+- 支持在线/离线状态实时更新
+- 显示 Gateway 运行状态和版本信息
+- 查看节点 CPU 使用率和运行时间
+- 显示 Agent 本地 IP 地址（便于定位和排查问题）
+- 支持自定义节点名称
+- 提供中英文界面切换
 
 ### 4. 构建和部署
 
@@ -258,7 +271,7 @@ Caribbean 使用 PID 文件跟踪运行中的服务：
 |------|------|------|
 | **Agent** | TypeScript + Bun | 轻量级守护进程，采集节点状态 |
 | **Server** | Fastify + WebSocket | 高性能 WebSocket 服务端 |
-| **Web UI** | React 18 + Vite + TailwindCSS | 实时数据可视化仪表盘 |
+| **Web UI** | React 18 + Vite + TailwindCSS | 实时实例列表监控仪表盘 |
 | **数据库** | SQLite / PostgreSQL | 状态持久化存储 |
 | **协议** | 自定义 JSON | 轻量级双向通信协议 |
 
@@ -465,6 +478,48 @@ caribbean/
 }
 ```
 
+## 数据库迁移系统
+
+Caribbean 提供自动化的数据库迁移系统，用于管理数据库 schema 版本和升级。
+
+### 迁移机制
+
+- **自动执行**：服务器启动时自动检查并执行未运行的迁移
+- **版本跟踪**：使用 `migrations` 表跟踪已执行的迁移版本
+- **幂等性**：每个迁移只执行一次，重复启动不会重复执行
+
+### 添加新迁移
+
+在 `apps/server/src/database.ts` 的 `getMigrations()` 方法中添加：
+
+```typescript
+private getMigrations(): Migration[] {
+  return [
+    {
+      version: 1,
+      name: 'add_client_ip_column',
+      up: `ALTER TABLE nodes ADD COLUMN client_ip TEXT;`
+    },
+    {
+      version: 2,
+      name: 'add_new_feature',
+      up: `ALTER TABLE nodes ADD COLUMN new_column TEXT DEFAULT 'default';`
+    }
+  ];
+}
+```
+
+### 迁移规则
+
+- `version` 必须唯一且递增
+- `name` 描述迁移目的
+- `up` 包含实际的 SQL 语句
+- 支持的数据库：SQLite 和 PostgreSQL
+
+### 现有数据库升级
+
+如果使用旧版本的 Caribbean，首次启动时会自动执行所有未运行的迁移。无需手动处理数据库文件，系统会自动升级 schema。
+
 ## OpenClaw 状态保障
 
 Caribbean Agent 提供了完整的 OpenClaw Gateway 状态监控和自动修复功能。
@@ -539,8 +594,8 @@ Dashboard 会实时显示每个节点的 OpenClaw 状态：
 当 Agent 重新连接到服务器时：
 
 1. **节点注册**：服务器检查数据库中是否已存在该节点 ID
-   - **已存在**：从数据库加载已保存的 `name` 和 `tags`，仅更新 `connected` 状态和 `last_seen` 时间戳
-   - **新节点**：使用客户端发送的 `name` 和 `tags` 创建完整节点记录
+    - **已存在**：从数据库加载已保存的 `name`、`tags` 和 `clientIp`，仅更新 `connected` 状态和 `last_seen` 时间戳
+    - **新节点**：使用客户端发送的 `name`、`tags` 和 `clientIp` 创建完整节点记录
 
 2. **即时状态检查**：连接后立即发送心跳，触发 OpenClaw Gateway 状态验证，无需等待心跳间隔
 
