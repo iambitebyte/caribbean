@@ -3,11 +3,20 @@ import cors from '@fastify/cors';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import type { NodeInfo } from '@caribbean/shared';
+import { verifyToken, generateToken } from './auth.js';
 
 export interface ApiServerConfig {
   port: number;
   host: string;
   webDistPath?: string;
+  auth?: {
+    enabled: boolean;
+    user?: {
+      username: string;
+      password: string;
+    };
+    jwtSecret?: string;
+  };
 }
 
 export class ApiServer {
@@ -18,6 +27,7 @@ export class ApiServer {
   private sendCommand: (nodeId: string, action: string, params: Record<string, unknown>) => string;
   private getDatabaseNodes?: () => Promise<NodeInfo[]>;
   private updateNodeName?: (nodeId: string, name: string) => Promise<void>;
+  private authEnabled: boolean;
 
   constructor(
     config: ApiServerConfig,
@@ -33,18 +43,79 @@ export class ApiServer {
     this.sendCommand = sendCommand;
     this.getDatabaseNodes = getDatabaseNodes;
     this.updateNodeName = updateNodeName;
+    this.authEnabled = !!config.auth?.enabled && !!config.auth?.user;
     this.fastify = Fastify({ logger: false });
     this.fastify.register(cors, {
       origin: true,
       credentials: true
     });
+    this.setupAuthMiddleware();
     this.setupRoutes();
     this.setupStaticFiles();
+  }
+
+  private setupAuthMiddleware(): void {
+    if (!this.authEnabled) return;
+
+    this.fastify.addHook('onRequest', async (request: any, reply: any) => {
+      const path = request.routerPath;
+
+      if (path === '/api/login' || path === '/api/health' || path?.startsWith('/api/auth/')) {
+        return;
+      }
+
+      if (path?.startsWith('/api/')) {
+        const authHeader = request.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          reply.code(401).send({ error: 'Unauthorized' });
+          return;
+        }
+
+        const token = authHeader.substring(7);
+        const jwtSecret = this.config.auth?.jwtSecret;
+        const payload = verifyToken(token, jwtSecret);
+
+        if (!payload) {
+          reply.code(401).send({ error: 'Invalid or expired token' });
+          return;
+        }
+
+        request.user = payload;
+      }
+    });
   }
 
   private setupRoutes(): void {
     this.fastify.get('/api/health', async () => {
       return { status: 'ok', timestamp: new Date().toISOString() };
+    });
+
+    this.fastify.post('/api/login', async (request: any, reply: any) => {
+      if (!this.authEnabled) {
+        reply.code(400).send({ error: 'Authentication is not enabled' });
+        return;
+      }
+
+      const { username, password } = request.body;
+
+      if (!username || !password) {
+        reply.code(400).send({ error: 'Username and password are required' });
+        return;
+      }
+
+      if (username !== this.config.auth?.user?.username || password !== this.config.auth?.user?.password) {
+        reply.code(401).send({ error: 'Invalid username or password' });
+        return;
+      }
+
+      const jwtSecret = this.config.auth?.jwtSecret;
+      const token = generateToken({ username }, jwtSecret);
+
+      return {
+        success: true,
+        token,
+        username
+      };
     });
 
     this.fastify.get('/api/nodes', async () => {

@@ -12,13 +12,107 @@ http://your-server:3000/api
 
 ## Authentication
 
-If authentication is enabled, include the token in the `Authorization` header:
+Caribbean supports two authentication methods:
+
+### 1. Agent Token Authentication
+
+If Agent authentication is enabled, include token in WebSocket connection:
+
+```javascript
+const ws = new WebSocket('ws://server:8080/ws/agent', {
+  headers: {
+    'Authorization': 'Bearer your-agent-token'
+  }
+});
+```
+
+### 2. Web UI JWT Authentication
+
+If Web UI authentication is enabled, obtain a JWT token via login endpoint:
+
+```bash
+# Login to get JWT token
+curl -X POST http://localhost:3000/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"your-password"}'
+
+# Response:
+# {
+#   "success": true,
+#   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+#   "username": "admin"
+# }
+```
+
+Include JWT token in subsequent API requests:
 
 ```
-Authorization: Bearer <your-token>
+Authorization: Bearer <your-jwt-token>
 ```
+
+**Note**: If authentication is not enabled, all endpoints can be accessed without authentication.
 
 ## Endpoints
+
+### Login (Web UI Authentication)
+
+Authenticate user and receive JWT token for subsequent API calls.
+
+**Request:**
+
+```http
+POST /api/login
+Content-Type: application/json
+```
+
+**Body:**
+
+```json
+{
+  "username": "admin",
+  "password": "your-password"
+}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWF0IjoxNjk5MjM4NDAwLCJleHAiOjE3MDAwMDI4MDB9.xxx",
+  "username": "admin"
+}
+```
+
+**Error Responses:**
+
+- **400 Bad Request** - Authentication not enabled
+  ```json
+  {
+    "error": "Authentication is not enabled"
+  }
+  ```
+
+- **400 Bad Request** - Missing credentials
+  ```json
+  {
+    "error": "Username and password are required"
+  }
+  ```
+
+- **401 Unauthorized** - Invalid credentials
+  ```json
+  {
+    "error": "Invalid username or password"
+  }
+  ```
+
+**Token Details:**
+- **Expiration**: 7 days from issuance
+- **Usage**: Include in `Authorization: Bearer <token>` header for all subsequent API calls
+- **Storage**: Store in browser localStorage
+
+---
 
 ### Health Check
 
@@ -45,10 +139,13 @@ GET /api/health
 
 Retrieve a list of all registered nodes.
 
+**Authentication**: Required (if enabled)
+
 **Request:**
 
 ```http
 GET /api/nodes
+Authorization: Bearer <your-jwt-token>
 ```
 
 **Response (200 OK):**
@@ -95,10 +192,13 @@ GET /api/nodes
 
 Retrieve detailed information about a specific node.
 
+**Authentication**: Required (if enabled)
+
 **Request:**
 
 ```http
 GET /api/nodes/:id
+Authorization: Bearer <your-jwt-token>
 ```
 
 **Parameters:**

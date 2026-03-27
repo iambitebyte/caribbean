@@ -2,8 +2,15 @@
 
 ## Table of Contents
 
+For detailed authentication configuration and security best practices, see the [Authentication Guide](authentication.md).
+
+---
+
+## Table of Contents
+
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
+- [Configure Authentication](#configure-authentication)
 - [Docker Deployment](#docker-deployment)
 - [Docker Compose](#docker-compose)
 - [Kubernetes](#kubernetes)
@@ -57,6 +64,50 @@ npx @caribbean/agent init --server ws://localhost:8080
 # Start the agent
 npx @caribbean/agent start
 ```
+
+### Configure Authentication
+
+Caribbean provides flexible authentication options for both Agent connections and Web UI access.
+
+#### Enable Web UI Authentication
+
+To secure the Web Dashboard with username and password:
+
+```bash
+# Set username and password
+caribbean-server set-auth --username admin --password your-secure-password
+
+# Restart server to apply changes
+caribbean-server restart
+
+# Verify authentication status
+caribbean-server status
+```
+
+#### Disable Web UI Authentication
+
+For internal networks where authentication is not needed:
+
+```bash
+caribbean-server set-auth --disable
+caribbean-server restart
+```
+
+#### Configure Agent Token Authentication
+
+During initialization, set a token for Agent connections:
+
+```bash
+caribbean-server init --token your-secret-token
+```
+
+Then configure agents with the same token:
+
+```bash
+caribbean-agent init --token your-secret-token
+```
+
+For detailed authentication configuration and security best practices, see the [Authentication Guide](authentication.md).
 
 ## Docker Deployment
 
@@ -447,11 +498,8 @@ Location: `~/.caribbean/server.json`
   },
   "api": {
     "port": 3000,
-    "host": "0.0.0.0"
-  },
-  "web": {
-    "port": 3000,
-    "title": "Caribbean Dashboard"
+    "host": "0.0.0.0",
+    "webDistPath": "./dist/web"
   },
   "database": {
     "type": "sqlite",
@@ -459,11 +507,16 @@ Location: `~/.caribbean/server.json`
   },
   "history": {
     "retention": 5,
-    "description": "Keeps only the last 5 status records per node"
+    "description": "Keeps only last 5 status records per node"
   },
   "auth": {
     "enabled": true,
-    "tokens": ["your-secret-token"]
+    "tokens": ["your-agent-token"],
+    "user": {
+      "username": "admin",
+      "password": "your-webui-password"
+    },
+    "jwtSecret": "caribbean-jwt-secret-auto-generated"
   }
 }
 ```
@@ -719,22 +772,33 @@ caribbean-server start
 
 ## Production Checklist
 
-- [ ] Enable authentication with strong tokens
-- [ ] Configure firewall rules
+### Security
+- [ ] Enable Web UI authentication for public deployments
+- [ ] Set strong username and password (min 12 characters, mixed case)
+- [ ] Enable Agent token authentication
+- [ ] Use cryptographically strong tokens (min 32 characters)
+- [ ] Configure firewall rules to restrict access
+- [ ] Use HTTPS for API endpoints in production
+- [ ] Implement rate limiting
+- [ ] Rotate passwords and tokens regularly
+
+### Reliability
 - [ ] Set up log rotation
 - [ ] Configure resource limits
 - [ ] Set up monitoring and alerting
 - [ ] Configure backups
-- [ ] Use HTTPS for API endpoints
-- [ ] Implement rate limiting
 - [ ] Set up failover for high availability
 - [ ] Document emergency procedures
+
+### Functionality
 - [ ] Verify OpenClaw Gateway status monitoring is working
 - [ ] Test database retention policy (last 5 records)
 - [ ] Set up alerts for Gateway offline status
 - [ ] Verify database migrations run successfully on startup
 - [ ] Backup database before major version upgrades
 - [ ] Test database upgrade path from previous version
+- [ ] Test authentication flow (login, token expiration, logout)
+- [ ] Verify 401 errors trigger proper UI feedback
 
 ## Support
 
