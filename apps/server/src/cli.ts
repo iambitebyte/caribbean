@@ -79,7 +79,9 @@ program
       },
       auth: {
         enabled: !!options.token,
-        tokens: options.token ? [options.token] : []
+        tokens: options.token ? [options.token] : [],
+        user: undefined,
+        jwtSecret: undefined
       }
     };
 
@@ -167,8 +169,68 @@ program
       console.log(`  API Port: ${config.api.port}`);
       console.log(`  Web UI: http://${config.api.host}:${config.api.port}`);
       console.log(`  Auth Enabled: ${config.auth.enabled}`);
+      if (config.auth.user) {
+        console.log(`  Username: ${config.auth.user.username}`);
+        console.log(`  Password: ${'*'.repeat(config.auth.user.password.length)}`);
+      }
     } catch (error) {
       console.error(`Failed to read config file: ${options.config}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('set-auth')
+  .description('Set username and password for web UI authentication')
+  .option('--config <path>', 'Config file path', CONFIG_PATH)
+  .option('--username <username>', 'Username')
+  .option('--password <password>', 'Password')
+  .option('--disable', 'Disable authentication')
+  .action((options) => {
+    try {
+      let configContent;
+      try {
+        configContent = readFileSync(options.config, 'utf-8');
+      } catch (error) {
+        console.error(`Failed to read config file: ${options.config}`);
+        console.error('Run `caribbean-server init` first.');
+        process.exit(1);
+      }
+
+      const config = JSON.parse(configContent);
+
+      if (options.disable) {
+        config.auth.enabled = false;
+        config.auth.user = undefined;
+        config.auth.jwtSecret = undefined;
+      } else if (options.username && options.password) {
+        config.auth.enabled = true;
+        config.auth.user = {
+          username: options.username,
+          password: options.password
+        };
+        config.auth.jwtSecret = 'caribbean-jwt-secret-' + Date.now();
+      } else {
+        console.error('Error: Please provide --username and --password, or use --disable to remove authentication.');
+        process.exit(1);
+      }
+
+      writeFileSync(options.config, JSON.stringify(config, null, 2));
+
+      if (options.disable) {
+        console.log('\n✓ Authentication disabled');
+        console.log(`\nConfiguration updated at ${options.config}`);
+      } else {
+        console.log('\n✓ Authentication enabled');
+        console.log(`  Username: ${options.username}`);
+        console.log(`  Password: ${'*'.repeat(options.password.length)}`);
+        console.log(`\nConfiguration updated at ${options.config}`);
+      }
+
+      console.log('\nNote: You may need to restart the server for changes to take effect.');
+      console.log('Run: caribbean-server restart');
+    } catch (error) {
+      console.error('Failed to set authentication:', error);
       process.exit(1);
     }
   });

@@ -21,12 +21,29 @@ Web Dashboard 提供简洁的实例列表视图，实时显示所有节点的状
 - **🔍 智能诊断** - 自动检测 Doctor Warnings 和配置问题
 - **🔧 自动修复** - 一键修复常见 OpenClaw 配置问题
 - **🎯 智能告警** - 节点离线、资源不足自动通知
-- **🔒 安全传输** - 支持 TLS 加密和 Token 认证
+- **🔒 安全认证** - 支持 Token 认证（Agent）和用户名密码登录（Web UI）
+- **🔐 JWT Token** - Web UI 使用 JWT 进行安全认证，7天有效期
 - **📦 一键部署** - 提供 CLI 工具和 Docker 镜像
 - **💾 状态持久化** - 节点重连时保留原有配置，无需重新注册
 - **⚡ 即时状态检查** - Agent 上线后立即执行 Gateway 状态检查
 - **🌐 IP 地址监控** - 自动采集并显示 Agent 本地 IP 地址
 - **🔄 数据库迁移** - 自动化的数据库版本管理和迁移系统
+
+## 目录
+
+- [架构设计](#架构设计)
+- [快速开始](#快速开始)
+- [认证配置](#认证配置)
+- [技术栈](#技术栈)
+- [项目结构](#项目结构)
+- [通信协议](#通信协议)
+- [API 接口](#api-接口)
+- [配置说明](#配置说明)
+- [数据库迁移系统](#数据库迁移系统)
+- [OpenClaw 状态保障](#openclaw-状态保障)
+- [开发指南](#开发指南)
+- [部署方案](#部署方案)
+- [文档](#文档)
 
 ## 架构设计
 
@@ -104,6 +121,48 @@ Server 将启动：
 ### 访问 Web UI
 
 打开浏览器访问 `http://localhost:3000`，查看集群实时状态。
+
+**注意**：如果启用了 Web UI 认证，系统会自动跳转到登录页面。
+
+### 认证配置
+
+#### Web UI 认证（可选）
+
+为 Web UI 启用用户名密码认证：
+
+```bash
+# 启用认证并设置用户名密码
+caribbean-server set-auth --username admin --password your-secure-password
+
+# 重启服务器使配置生效
+caribbean-server restart
+
+# 查看认证状态
+caribbean-server status
+```
+
+禁用 Web UI 认证（适用于内网环境）：
+
+```bash
+caribbean-server set-auth --disable
+caribbean-server restart
+```
+
+#### Agent Token 认证
+
+初始化时设置 Agent 连接的 Token：
+
+```bash
+caribbean-server init --token your-secret-token
+```
+
+然后在 Agent 配置中使用相同的 Token：
+
+```bash
+caribbean-agent init --token your-secret-token
+```
+
+详细认证配置请参考 [认证指南](docs/authentication.md)。
 
 ### 使用 Docker（可选）
 
@@ -404,14 +463,20 @@ caribbean/
 
 ### REST API
 
-| 方法 | 路径 | 描述 |
-|------|------|------|
-| GET | `/api/nodes` | 获取所有节点列表 |
-| GET | `/api/nodes/:id` | 获取单个节点详情 |
-| PATCH | `/api/nodes/:id/name` | 更新节点名称 |
-| GET | `/api/nodes/:id/status` | 获取节点历史状态 |
-| POST | `/api/nodes/:id/command` | 向节点发送指令 |
-| GET | `/api/health` | 服务健康检查 |
+| 方法 | 路径 | 描述 | 认证 |
+|------|------|------|------|
+| POST | `/api/login` | Web UI 登录，获取 JWT Token | 否 |
+| GET | `/api/nodes` | 获取所有节点列表 | 是 |
+| GET | `/api/nodes/:id` | 获取单个节点详情 | 是 |
+| PATCH | `/api/nodes/:id/name` | 更新节点名称 | 是 |
+| GET | `/api/nodes/:id/status` | 获取节点历史状态 | 是 |
+| POST | `/api/nodes/:id/command` | 向节点发送指令 | 是 |
+| GET | `/api/health` | 服务健康检查 | 否 |
+
+**注意**：
+- 标记为"是"的端点需要在请求头中包含 JWT Token：`Authorization: Bearer <token>`
+- 如果未启用认证，所有端点均可直接访问
+- `/api/login` 端点不需要认证，用于获取 JWT Token
 
 ### WebSocket 事件
 
@@ -459,9 +524,10 @@ caribbean/
     "path": "/ws/agent",
     "maxConnections": 1000
   },
-  "web": {
+  "api": {
     "port": 3000,
-    "title": "Caribbean Dashboard"
+    "host": "0.0.0.0",
+    "webDistPath": "./dist/web"
   },
   "database": {
     "type": "sqlite",       // sqlite 或 postgresql
@@ -473,7 +539,12 @@ caribbean/
   },
   "auth": {
     "enabled": true,
-    "tokens": ["your-secret-token"]
+    "tokens": ["your-secret-token"],  // Agent 认证 Token
+    "user": {                          // Web UI 认证配置
+      "username": "admin",
+      "password": "your-secure-password"
+    },
+    "jwtSecret": "caribbean-jwt-secret-xxx"  // JWT 签名密钥（自动生成）
   }
 }
 ```
@@ -739,6 +810,9 @@ kubectl apply -f k8s/agent-daemonset.yaml
 - [x] 节点重连时保留原有配置
 - [x] Agent 上线后即时状态检查
 - [x] 节点离线时正确显示 Gateway 状态为 unknown
+- [x] Web UI 用户认证（用户名/密码 + JWT）
+- [x] Agent Token 认证
+- [x] CLI 命令管理认证设置
 - [ ] 告警系统
 - [ ] 日志聚合
 - [ ] 性能分析
@@ -758,6 +832,28 @@ kubectl apply -f k8s/agent-daemonset.yaml
 - 代码通过 TypeScript 类型检查
 - 所有测试通过
 - 提交信息遵循 [Conventional Commits](https://conventionalcommits.org/)
+
+## 文档
+
+详细文档请查看 [docs/](docs/) 目录：
+
+- **[认证指南](docs/authentication.md)** - Agent 和 Web UI 认证配置详解
+  - Token 认证（Agent）
+  - 用户名/密码认证（Web UI）
+  - JWT Token 管理
+  - 安全最佳实践
+
+- **[API 文档](docs/api.md)** - REST API 和 WebSocket 接口说明
+  - API 端点列表
+  - 认证方式
+  - 请求/响应示例
+
+- **[部署指南](docs/deployment.md)** - 生产环境部署指南
+  - Docker 部署
+  - Docker Compose 配置
+  - Kubernetes 部署
+  - Systemd 服务配置
+  - 故障排查
 
 ## 许可证
 

@@ -22,6 +22,11 @@ export interface ServerConfig {
   auth?: {
     enabled: boolean;
     tokens: string[];
+    user?: {
+      username: string;
+      password: string;
+    };
+    jwtSecret?: string;
   };
 }
 
@@ -64,7 +69,10 @@ export class CaribbeanServer {
 
     if (this.config.api) {
       this.apiServer = new ApiServer(
-        this.config.api,
+        {
+          ...this.config.api,
+          auth: this.config.auth
+        },
         (nodeId) => this.nodeManager.getNode(nodeId),
         () => this.nodeManager.getAllNodes(),
         (nodeId, action, params) => this.websocketHub.sendCommand(nodeId, action, params),

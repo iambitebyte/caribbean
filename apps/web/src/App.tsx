@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom"
 import { NodeInfo } from "@/types"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
@@ -7,12 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/Badge"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { EditNameDialog } from "@/components/EditNameDialog"
-import { Cpu, RefreshCw, Server, Clock, Pencil } from "lucide-react"
+import { Cpu, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle } from "lucide-react"
 import { fetchDatabaseNodes, fetchStats, updateNodeName } from "@/lib/api"
-import { motion } from "framer-motion"
-import type { OpenClawGatewayStatus as OpenClawGatewayStatusType } from "@/types"
+import { tokenManager } from "@/lib/auth"
+import { motion, AnimatePresence } from "framer-motion"
+import Login from "@/components/Login"
+import type { OpenClawGatewayStatus } from "@/types"
 
-function OpenClawGatewayStatusBadge({ status }: { status: string | OpenClawGatewayStatusType }) {
+function OpenClawGatewayStatusBadge({ status }: { status: string | OpenClawGatewayStatus }) {
   if (typeof status === 'string') {
     return (
       <Badge variant={status === 'running' ? "blue" : "destructive"} className="whitespace-nowrap">
@@ -31,14 +34,44 @@ function OpenClawGatewayStatusBadge({ status }: { status: string | OpenClawGatew
   )
 }
 
-function App() {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = tokenManager.isAuthenticated();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: location } });
+    }
+  }, [isAuthenticated, navigate, location]);
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
+function AppContent() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [nodes, setNodes] = useState<NodeInfo[]>([])
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const [editingNode, setEditingNode] = useState<{ id: string; name: string } | null>(null)
+  const [showAuthErrorDialog, setShowAuthErrorDialog] = useState(false)
+
+  const handleLogout = () => {
+    tokenManager.removeToken();
+    navigate('/login');
+  };
+
+  const handleAuthErrorConfirm = () => {
+    setShowAuthErrorDialog(false);
+    navigate('/login');
+  };
 
   const loadData = async () => {
     try {
@@ -52,8 +85,12 @@ function App() {
       try {
         nodesData = await fetchDatabaseNodes()
         setNodes(nodesData)
-      } catch (nodesErr) {
+      } catch (nodesErr: any) {
         console.error("Failed to fetch nodes from database:", nodesErr)
+        if (nodesErr.response?.status === 401) {
+          setShowAuthErrorDialog(true);
+          return;
+        }
         if (!hasLoadedOnce) {
           setError("无法连接到服务器")
         }
@@ -62,14 +99,22 @@ function App() {
       try {
         statsData = await fetchStats()
         setStats(statsData)
-      } catch (statsErr) {
+      } catch (statsErr: any) {
         console.error("Failed to fetch stats:", statsErr)
+        if (statsErr.response?.status === 401) {
+          setShowAuthErrorDialog(true);
+          return;
+        }
         // Don't show error for stats, just log it
       }
 
       setHasLoadedOnce(true)
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error loading data:", err)
+      if (err.response?.status === 401) {
+        setShowAuthErrorDialog(true);
+        return;
+      }
       if (!hasLoadedOnce) {
         setError(err instanceof Error ? err.message : "Failed to load data")
       }
@@ -153,6 +198,15 @@ function App() {
                 <Button onClick={loadData} variant="outline" size="sm">
                   <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                   {t('header.refresh')}
+                </Button>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button onClick={handleLogout} variant="outline" size="sm">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
                 </Button>
               </motion.div>
             </div>
@@ -376,16 +430,68 @@ function App() {
            </>
          )}
          
-         <EditNameDialog
-           isOpen={editingNode !== null}
-           onClose={() => setEditingNode(null)}
-           nodeId={editingNode?.id || ''}
-           currentName={editingNode?.name || ''}
-           onSave={handleSaveName}
-         />
-       </main>
-     </div>
-   )
-}
+          <EditNameDialog
+            isOpen={editingNode !== null}
+            onClose={() => setEditingNode(null)}
+            nodeId={editingNode?.id || ''}
+            currentName={editingNode?.name || ''}
+            onSave={handleSaveName}
+          />
 
-export default App
+          <AnimatePresence>
+            {showAuthErrorDialog && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                onClick={() => setShowAuthErrorDialog(false)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-card rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <AlertCircle className="h-6 w-6 text-destructive" />
+                    <h3 className="text-lg font-semibold">需要登录</h3>
+                  </div>
+                  <p className="text-muted-foreground mb-6">
+                    您的会话已过期，请重新登录以继续访问。
+                  </p>
+                  <div className="flex gap-3 justify-end">
+                    <Button variant="outline" onClick={() => setShowAuthErrorDialog(false)}>
+                      取消
+                    </Button>
+                    <Button onClick={handleAuthErrorConfirm}>
+                      前往登录
+                    </Button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
+      </div>
+    );
+  }
+
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <AppContent />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Router>
+  );
+}
