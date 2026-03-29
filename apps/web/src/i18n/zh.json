@@ -28,6 +28,7 @@
     "clientIp": "IP 地址",
     "lastSeen": "最后上线",
     "cpu": "CPU",
+    "memory": "内存",
     "uptime": "运行时间",
     "connected": "在线",
     "disconnected": "离线",

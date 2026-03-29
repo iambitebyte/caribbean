@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/Badge"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { EditNameDialog } from "@/components/EditNameDialog"
-import { Cpu, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle } from "lucide-react"
+import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle } from "lucide-react"
 import { fetchDatabaseNodes, fetchStats, updateNodeName } from "@/lib/api"
 import { tokenManager } from "@/lib/auth"
 import { motion, AnimatePresence } from "framer-motion"
@@ -323,6 +323,7 @@ function AppContent() {
                         <TableHead>Gateway</TableHead>
                         <TableHead>{t('nodes.lastSeen')}</TableHead>
                         <TableHead>{t('nodes.cpu')}</TableHead>
+                        <TableHead>{t('nodes.memory')}</TableHead>
                         <TableHead>{t('nodes.uptime')}</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -405,6 +406,16 @@ function AppContent() {
                               <div className="flex items-center gap-2">
                                 <Cpu className="h-4 w-4 text-muted-foreground" />
                                 <span>{node.status.cpu.percent}%</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {node.connected && node.status?.memory ? (
+                              <div className="flex items-center gap-2">
+                                <MemoryStick className="h-4 w-4 text-muted-foreground" />
+                                <span>{node.status.memory.used}/{node.status.memory.total}GB ({node.status.memory.percent}%)</span>
                               </div>
                             ) : (
                               <span className="text-muted-foreground">-</span>

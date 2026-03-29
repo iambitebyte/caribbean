@@ -38,6 +38,11 @@ export interface NodeStatus {
   cpu: {
     percent: number;
   };
+  memory: {
+    used: number;
+    total: number;
+    percent: number;
+  };
   agents: {
     active: number;
     max: number;

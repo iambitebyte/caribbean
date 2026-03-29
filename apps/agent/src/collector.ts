@@ -3,12 +3,40 @@ import os from 'os';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
+import { createOSUtils } from 'node-os-utils';
 
 export class StatusCollector {
   private startTime: Date;
+  private cpuPercent: number = 0;
+  private cpuPollingTimer: NodeJS.Timeout | null = null;
+  private osUtils = createOSUtils();
 
   constructor() {
     this.startTime = new Date();
+    this.startCpuMonitoring();
+  }
+
+  private startCpuMonitoring(): void {
+    const poll = async () => {
+      try {
+        const result = await this.osUtils.cpu.usage();
+        if (result.success && result.data !== null && result.data !== undefined) {
+          this.cpuPercent = Math.round(result.data);
+        }
+      } catch {
+        this.cpuPercent = 0;
+      }
+    };
+
+    poll();
+    this.cpuPollingTimer = setInterval(poll, 5000);
+  }
+
+  destroy(): void {
+    if (this.cpuPollingTimer) {
+      clearInterval(this.cpuPollingTimer);
+      this.cpuPollingTimer = null;
+    }
   }
 
   collect(): NodeStatus {
@@ -25,6 +53,43 @@ export class StatusCollector {
 
   private collectMemory(): MemoryInfo {
     const totalMem = os.totalmem() / (1024 * 1024 * 1024);
+
+    if (process.platform === 'darwin') {
+      return this.collectMacOSMemory(totalMem);
+    }
+
+    return this.collectDefaultMemory(totalMem);
+  }
+
+  private collectMacOSMemory(totalMem: number): MemoryInfo {
+    try {
+      const vmstat = execSync('vm_stat', { timeout: 3000 }).toString();
+      const pageSize = 16384;
+
+      const extractPages = (pattern: RegExp): number => {
+        const match = vmstat.match(pattern);
+        return match ? parseInt(match[1], 10) : 0;
+      };
+
+      const active = extractPages(/Pages active:\s*(\d+)/);
+      const wired = extractPages(/Pages wired down:\s*(\d+)/);
+      const compressed = extractPages(/Pages occupied by compressor:\s*(\d+)/);
+
+      const usedBytes = (active + wired + compressed) * pageSize;
+      const usedMem = usedBytes / (1024 * 1024 * 1024);
+      const percent = Math.round((usedMem / totalMem) * 100);
+
+      return {
+        used: Number(usedMem.toFixed(2)),
+        total: Number(totalMem.toFixed(2)),
+        percent
+      };
+    } catch {
+      return this.collectDefaultMemory(totalMem);
+    }
+  }
+
+  private collectDefaultMemory(totalMem: number): MemoryInfo {
     const freeMem = os.freemem() / (1024 * 1024 * 1024);
     const usedMem = totalMem - freeMem;
     const percent = Math.round((usedMem / totalMem) * 100);
@@ -37,11 +102,7 @@ export class StatusCollector {
   }
 
   private collectCpu(): CpuInfo {
-    const cpus = os.cpus();
-    const usage = os.loadavg();
-    const percent = Math.min(100, Math.round((usage[0] / cpus.length) * 100));
-
-    return { percent };
+    return { percent: this.cpuPercent };
   }
 
   private collectAgents(): AgentsInfo {
