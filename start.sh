@@ -4,8 +4,8 @@ echo "🌴 Caribbean - Quick Start"
 echo "=========================="
 
 # Build everything (packages first, then apps)
-echo "📦 Building all packages and apps..."
-pnpm run build
+echo "📦 Building shared packages..."
+pnpm --filter './packages/**' build
 
 if [ $? -ne 0 ]; then
   echo "❌ Build failed"
@@ -13,7 +13,38 @@ if [ $? -ne 0 ]; then
 fi
 
 echo ""
+echo "📦 Building Web Dashboard and Server..."
+cd apps/server
+pnpm run build:all
+
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed"
+  exit 1
+fi
+
+echo ""
+echo "📦 Building Agent..."
+cd ../agent
+pnpm run build
+
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed"
+  exit 1
+fi
+
+cd ../..
+
+echo ""
 echo "✅ Build complete!"
+echo ""
+
+# Stop existing instances
+echo "🛑 Stopping existing Server..."
+pnpm exec caribbean-server stop
+
+echo "🛑 Stopping existing Agent..."
+pnpm exec caribbean-agent stop
+
 echo ""
 
 # Start server in background
