@@ -10,7 +10,17 @@
     "test": "pnpm --filter \"./apps/**\" test",
     "lint": "pnpm --filter \"./apps/**\" lint",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
-    "init": "pnpm --filter @caribbean/server exec caribbean-server init"
+    "init": "pnpm --filter @caribbean/server exec caribbean-server init",
+    "server:start": "caribbean-server start",
+    "server:stop": "caribbean-server stop",
+    "server:restart": "caribbean-server restart",
+    "server:status": "caribbean-server status",
+    "server:logs": "caribbean-server logs",
+    "agent:start": "caribbean-agent start",
+    "agent:stop": "caribbean-agent stop",
+    "agent:restart": "caribbean-agent restart",
+    "agent:status": "caribbean-agent status",
+    "agent:logs": "caribbean-agent logs"
   },
   "keywords": [
     "cluster",
@@ -29,6 +39,7 @@
     "tsx": "^4.21.0"
   },
   "dependencies": {
-    "@caribbean/server": "workspace:^"
+    "@caribbean/server": "workspace:^",
+    "@caribbean/agent": "workspace:^"
   }
 }

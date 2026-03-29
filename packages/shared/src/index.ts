@@ -1,1 +1,2 @@
-export * from './node';
+export * from './node.js';
+export * from './daemon.js';
