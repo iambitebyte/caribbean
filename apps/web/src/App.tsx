@@ -413,9 +413,9 @@ function AppContent() {
                           </TableCell>
                           <TableCell>
                             {node.connected && node.status?.memory ? (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2" title={`${node.status.memory.used}GB / ${node.status.memory.total}GB`}>
                                 <MemoryStick className="h-4 w-4 text-muted-foreground" />
-                                <span>{node.status.memory.used}/{node.status.memory.total}GB ({node.status.memory.percent}%)</span>
+                                <span>{node.status.memory.percent}%</span>
                               </div>
                             ) : (
                               <span className="text-muted-foreground">-</span>
