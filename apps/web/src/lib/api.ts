@@ -35,6 +35,11 @@ apiClient.interceptors.response.use(
   }
 );
 
+export async function fetchAuthStatus(): Promise<{ enabled: boolean }> {
+  const response = await apiClient.get('/auth/status');
+  return response.data;
+}
+
 export async function login(username: string, password: string) {
   const response = await apiClient.post('/login', { username, password });
   return response.data;

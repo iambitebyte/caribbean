@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { EditNameDialog } from "@/components/EditNameDialog"
 import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle } from "lucide-react"
-import { fetchDatabaseNodes, fetchStats, updateNodeName } from "@/lib/api"
+import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName } from "@/lib/api"
 import { tokenManager } from "@/lib/auth"
 import { motion, AnimatePresence } from "framer-motion"
 import Login from "@/components/Login"
@@ -34,25 +34,25 @@ function OpenClawGatewayStatusBadge({ status }: { status: string | OpenClawGatew
   )
 }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, authEnabled }: { children: React.ReactNode; authEnabled: boolean }) {
   const isAuthenticated = tokenManager.isAuthenticated();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (authEnabled && !isAuthenticated) {
       navigate('/login', { state: { from: location } });
     }
-  }, [isAuthenticated, navigate, location]);
+  }, [authEnabled, isAuthenticated, navigate, location]);
 
-  if (!isAuthenticated) {
+  if (authEnabled && !isAuthenticated) {
     return null;
   }
 
   return <>{children}</>;
 }
 
-function AppContent() {
+function AppContent({ authEnabled }: { authEnabled: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [nodes, setNodes] = useState<NodeInfo[]>([])
@@ -200,15 +200,17 @@ function AppContent() {
                   {t('header.refresh')}
                 </Button>
               </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button onClick={handleLogout} variant="outline" size="sm">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
-              </motion.div>
+              {authEnabled && (
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button onClick={handleLogout} variant="outline" size="sm">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+                </motion.div>
+              )}
             </div>
           </div>
         </div>
@@ -490,15 +492,23 @@ function AppContent() {
   }
 
 export default function App() {
+  const [authEnabled, setAuthEnabled] = useState(true)
+
+  useEffect(() => {
+    fetchAuthStatus()
+      .then((data) => setAuthEnabled(data.enabled))
+      .catch(() => setAuthEnabled(true))
+  }, [])
+
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        {authEnabled && <Route path="/login" element={<Login />} />}
         <Route
           path="/*"
           element={
-            <ProtectedRoute>
-              <AppContent />
+            <ProtectedRoute authEnabled={authEnabled}>
+              <AppContent authEnabled={authEnabled} />
             </ProtectedRoute>
           }
         />
