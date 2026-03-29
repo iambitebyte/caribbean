@@ -1,860 +1,102 @@
-# 🌴 Caribbean
+# Caribbean
 
 > OpenClaw 集群管理服务 - 实时监控、统一管理、智能调度
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![WebSocket](https://img.shields.io/badge/WebSocket-Real--time-green.svg)](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)
 
 ## 简介
 
-Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集群管理解决方案。它采用轻量级 Agent + 中心化 Server 架构，通过 WebSocket 实现双向实时通信，让你能够轻松监控和管理分布在多台服务器上的 OpenClaw 节点。
+Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集群管理解决方案。采用轻量级 Agent + 中心化 Server 架构，通过 WebSocket 实现双向实时通信，轻松监控和管理分布式的 OpenClaw 节点。
 
-Web Dashboard 提供简洁的实例列表视图，实时显示所有节点的状态信息。
+### 核心特性
 
-### ✨ 核心特性
+- 轻量级 Agent，单进程运行，资源占用极低
+- WebSocket 实时双向通信，支持状态上报和远程指令
+- React + Vite 现代化 Web 仪表盘
+- OpenClaw Gateway 状态监控与智能诊断
+- 一键自动修复常见 OpenClaw 配置问题
+- Token 认证（Agent）+ 用户名密码登录（Web UI）
 
-- **🚀 轻量级 Agent** - 单二进制文件，资源占用极低 (< 50MB 内存)
-- **🔄 实时双向通信** - WebSocket 保持长连接，支持状态上报和远程指令
-- **📊 可视化监控** - 基于 React + Vite 的现代化 Web 仪表盘
-- **⚡ Gateway 监控** - Agent 端主动验证 OpenClaw Gateway 状态
-- **🔍 智能诊断** - 自动检测 Doctor Warnings 和配置问题
-- **🔧 自动修复** - 一键修复常见 OpenClaw 配置问题
-- **🎯 智能告警** - 节点离线、资源不足自动通知
-- **🔒 安全认证** - 支持 Token 认证（Agent）和用户名密码登录（Web UI）
-- **🔐 JWT Token** - Web UI 使用 JWT 进行安全认证，7天有效期
-- **📦 一键部署** - 提供 CLI 工具和 Docker 镜像
-- **💾 状态持久化** - 节点重连时保留原有配置，无需重新注册
-- **⚡ 即时状态检查** - Agent 上线后立即执行 Gateway 状态检查
-- **🌐 IP 地址监控** - 自动采集并显示 Agent 本地 IP 地址
-- **🔄 数据库迁移** - 自动化的数据库版本管理和迁移系统
-
-## 目录
-
-- [架构设计](#架构设计)
-- [快速开始](#快速开始)
-- [认证配置](#认证配置)
-- [技术栈](#技术栈)
-- [项目结构](#项目结构)
-- [通信协议](#通信协议)
-- [API 接口](#api-接口)
-- [配置说明](#配置说明)
-- [数据库迁移系统](#数据库迁移系统)
-- [OpenClaw 状态保障](#openclaw-状态保障)
-- [开发指南](#开发指南)
-- [部署方案](#部署方案)
-- [文档](#文档)
-
-## 架构设计
+## 架构
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Caribbean Server                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐  │
-│  │   REST API   │  │ WebSocket Hub│  │  Web UI     │  │
-│  │   (HTTP)     │  │  (实时通信)   │  │ (React)     │  │
-│  └──────────────┘  └──────────────┘  └─────────────┘  │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │              数据持久化 (SQLite/PostgreSQL)        │   │
-│  └─────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-                            ▲
-                            │ WebSocket (双向) / HTTP
-         ┌──────────────────┼──────────────────┐
-         │                  │                  │
- ┌───────┴──────┐   ┌───────┴──────┐   ┌───────┴──────┐
- │   Node 01    │   │   Node 02    │   │   Node 03    │
- │ ┌──────────┐ │   │ ┌──────────┐ │   │ ┌──────────┐ │
- │ │ Caribbean│ │   │ │ Caribbean│ │   │ │ Caribbean│ │
- │ │  Agent   │ │   │ │  Agent   │ │   │ │  Agent   │ │
- │ └──────────┘ │   │ └──────────┘ │   │ └──────────┘ │
- │ ┌──────────┐ │   │ ┌──────────┐ │   │ ┌──────────┐ │
- │ │ OpenClaw │ │   │ │ OpenClaw │ │   │ │ OpenClaw │ │
- │ │ Gateway  │ │   │ │ Gateway  │ │   │ │ Gateway  │ │
- │ └──────────┘ │   │ └──────────┘ │   │ └──────────┘ │
- └──────────────┘   └──────────────┘   └──────────────┘
-                           ▲
-                           │ WebSocket (双向)
-        ┌──────────────────┼──────────────────┐
-        │                  │                  │
-┌───────┴──────┐   ┌───────┴──────┐   ┌───────┴──────┐
-│   Node 01    │   │   Node 02    │   │   Node 03    │
-│ ┌──────────┐ │   │ ┌──────────┐ │   │ ┌──────────┐ │
-│ │ Caribbean│ │   │ │ Caribbean│ │   │ │ Caribbean│ │
-│ │  Agent   │ │   │ │  Agent   │ │   │ │  Agent   │ │
-│ └──────────┘ │   │ └──────────┘ │   │ └──────────┘ │
-│ ┌──────────┐ │   │ ┌──────────┐ │   │ ┌──────────┐ │
-│ │ OpenClaw │ │   │ │ OpenClaw │ │   │ │ OpenClaw │ │
-│ │ Gateway  │ │   │ │ Gateway  │ │   │ │ Gateway  │ │
-│ └──────────┘ │   │ └──────────┘ │   │ └──────────┘ │
-└──────────────┘   └──────────────┘   └──────────────┘
+┌─────────────────────────────────────────────────┐
+│                 Caribbean Server                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
+│  │ REST API │  │   WS Hub │  │   Web UI     │  │
+│  │  :3000   │  │   :8080  │  │  (React)     │  │
+│  └──────────┘  └──────────┘  └──────────────┘  │
+│  ┌───────────────────────────────────────────┐  │
+│  │        数据持久化 (SQLite/PostgreSQL)      │  │
+│  └───────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────┘
+                         ▲
+                   WebSocket (双向)
+          ┌──────────────┼──────────────┐
+          │              │              │
+   ┌──────┴─────┐ ┌──────┴─────┐ ┌──────┴─────┐
+   │  Agent     │ │  Agent     │ │  Agent     │
+   │ + OpenClaw │ │ + OpenClaw │ │ + OpenClaw │
+   └────────────┘ └────────────┘ └────────────┘
 ```
 
 ## 快速开始
 
-### 一键启动（推荐）
+### 前置要求
+
+- Node.js 18+
+- pnpm
+
+### 一键启动
 
 ```bash
+pnpm install
 ./start.sh
 ```
-
-这将自动构建并启动 Caribbean Server（包含 Web UI）。
 
 ### 手动启动
 
 ```bash
-# 1. 构建项目
-cd apps/server
-pnpm run build:all
+# 构建
+cd apps/server && pnpm run build:all
 
-# 2. 初始化配置
+# 初始化配置
 pnpm init
 
-# 3. 启动 Server
+# 启动
 npm start
 ```
 
-Server 将启动：
-- WebSocket 服务：`ws://localhost:8080`（用于 Agent 连接）
-- REST API + Web UI：`http://localhost:3000`
+启动后访问：
+- **Web UI**：http://localhost:3000
+- **WebSocket**：ws://localhost:8080
 
-### 访问 Web UI
+### 部署 Agent
 
-打开浏览器访问 `http://localhost:3000`，查看集群实时状态。
-
-**注意**：如果启用了 Web UI 认证，系统会自动跳转到登录页面。
-
-### 认证配置
-
-#### Web UI 认证（可选）
-
-为 Web UI 启用用户名密码认证：
+在 OpenClaw 节点上：
 
 ```bash
-# 启用认证并设置用户名密码
-caribbean-server set-auth --username admin --password your-secure-password
-
-# 重启服务器使配置生效
-caribbean-server restart
-
-# 查看认证状态
-caribbean-server status
-```
-
-禁用 Web UI 认证（适用于内网环境）：
-
-```bash
-caribbean-server set-auth --disable
-caribbean-server restart
-```
-
-#### Agent Token 认证
-
-初始化时设置 Agent 连接的 Token：
-
-```bash
-caribbean-server init --token your-secret-token
-```
-
-然后在 Agent 配置中使用相同的 Token：
-
-```bash
-caribbean-agent init --token your-secret-token
-```
-
-详细认证配置请参考 [认证指南](docs/authentication.md)。
-
-### 使用 Docker（可选）
-
-```bash
-docker run -d \
-  --name caribbean-server \
-  -p 3000:3000 \
-  -p 8080:8080 \
-  -v caribbean-data:/app/data \
-  ghcr.io/your-org/caribbean-server:latest
-```
-
-### 2. 部署 Agent
-
-```bash
-# 在 OpenClaw 节点上安装 Agent
-curl -fsSL https://caribbean.dev/install.sh | bash
-
-# 配置并启动
 caribbean-agent init --server ws://your-server:8080
 caribbean-agent start
 ```
-
-### 3. 访问仪表盘
-
-打开浏览器访问 `http://localhost:3000`，即可查看集群实时状态。
-
-**注意：Web Dashboard 已集成到 Server 中，无需单独启动！**
-
-- WebSocket 服务：`ws://localhost:8080`（Agent 连接）
-- REST API + Web UI：`http://localhost:3000`
-
-**Web Dashboard 功能：**
-- 实时显示所有注册节点的状态列表
-- 支持在线/离线状态实时更新
-- 显示 Gateway 运行状态和版本信息
-- 查看节点 CPU 使用率和运行时间
-- 显示 Agent 本地 IP 地址（便于定位和排查问题）
-- 支持自定义节点名称
-- 提供中英文界面切换
-
-### 4. 构建和部署
-
-```bash
-# 构建 Web Dashboard 和 Server
-cd apps/server
-pnpm run build:all
-
-# 启动 Server（包含 Web UI）
-npm start
-```
-
-### 5. 开发模式
-
-```bash
-# 启动 Web Dashboard 开发服务器（热重载）
-cd apps/web
-pnpm dev
-
-# 启动 Server（另一个终端）
-cd apps/server
-npm start
-```
-
-开发模式下，Web Dashboard 运行在 `http://localhost:5173`，Server 运行在 `http://localhost:3000`。
-
-### 4. 服务管理
-
-Caribbean 提供了完整的服务管理命令，包括启动、停止和重启功能。
-
-#### 启动服务
-
-```bash
-# 启动 Server
-npx tsx apps/server/src/cli.js start
-
-# 启动 Agent
-npx tsx apps/agent/src/cli.js start
-```
-
-#### 停止服务
-
-```bash
-# 停止 Server (同时停止 WebSocket 8080 和 REST API 3000)
-npx tsx apps/server/src/cli.js stop
-
-# 停止 Agent
-npx tsx apps/agent/src/cli.js stop
-```
-
-#### 重启服务
-
-```bash
-# 重启 Server
-npx tsx apps/server/src/cli.js restart
-
-# 重启 Agent
-npx tsx apps/agent/src/cli.js restart
-```
-
-#### 查看服务状态
-
-```bash
-# 查看 Server 配置状态
-npx tsx apps/server/src/cli.js status
-
-# 查看 Agent 配置状态
-npx tsx apps/agent/src/cli.js status
-
-# 检查 OpenClaw Gateway 详细状态
-npx tsx apps/agent/src/cli.js openclaw-status
-
-# 验证 OpenClaw 配置文件
-npx tsx apps/agent/src/cli.js validate-openclaw
-```
-
-#### OpenClaw 配置管理
-
-```bash
-# 自动修复 OpenClaw 配置问题
-npx tsx apps/agent/src/cli.js fix-openclaw
-
-# 预览修复（不实际修改配置）
-npx tsx apps/agent/src/cli.js fix-openclaw --dry-run
-
-# 修复前创建备份
-npx tsx apps/agent/src/cli.js fix-openclaw --backup
-```
-
-**自动修复功能支持：**
-- Telegram 群组策略配置修复
-- 缺失的 skills 自动填充
-- 缺失的 agents 列表自动填充
-- Gateway 端口配置修复
-- 认证密钥自动生成
-
-#### 查看帮助
-
-```bash
-# 查看 Server 命令帮助
-npx tsx apps/server/src/cli.js --help
-
-# 查看 Agent 命令帮助
-npx tsx apps/agent/src/cli.js --help
-```
-
-#### PID 文件管理
-
-Caribbean 使用 PID 文件跟踪运行中的服务：
-
-- **Server PID**: `~/.caribbean/server.pid`
-- **Agent PID**: `~/.caribbean/agent.pid`
-
-停止机制：
-- 首先发送 SIGTERM 信号（优雅停止，10 秒超时）
-- 如果超时，发送 SIGKILL 信号（强制停止）
-
-防重复启动：
-- 启动前检查 PID 文件
-- 如果服务已运行，拒绝启动并提示使用 stop 命令
-
-## 技术栈
-
-| 组件 | 技术 | 说明 |
-|------|------|------|
-| **Agent** | TypeScript + Bun | 轻量级守护进程，采集节点状态 |
-| **Server** | Fastify + WebSocket | 高性能 WebSocket 服务端 |
-| **Web UI** | React 18 + Vite + TailwindCSS | 实时实例列表监控仪表盘 |
-| **数据库** | SQLite / PostgreSQL | 状态持久化存储 |
-| **协议** | 自定义 JSON | 轻量级双向通信协议 |
-
-## 项目结构
-
-```
-caribbean/
-├── apps/
-│   ├── agent/              # 节点 Agent
-│   │   ├── src/
-│   │   │   ├── collector.ts    # 状态采集器
-│   │   │   ├── config-fixer.ts # OpenClaw 配置修复器
-│   │   │   ├── websocket.ts    # WebSocket 客户端
-│   │   │   ├── cli.ts          # CLI 命令
-│   │   │   └── index.ts        # 入口
-│   │   └── package.json
-│   │
-│   ├── server/             # 服务端
-│   │   ├── src/
-│   │   │   ├── websocket-hub.ts    # WebSocket Hub
-│   │   │   ├── api.ts              # REST API
-│   │   │   ├── node-manager.ts     # 节点管理
-│   │   │   ├── database.ts         # 数据库管理
-│   │   │   └── index.ts            # 入口
-│   │   └── package.json
-│   │
-│   └── web/                # Web Dashboard
-│       ├── src/
-│       │   ├── components/          # UI 组件
-│       │   │   ├── ui/             # shadcn/ui 组件
-│       │   │   └── NodeCard.tsx    # 节点卡片
-│       │   ├── lib/                # 工具函数
-│       │   ├── types/              # 类型定义
-│       │   ├── App.tsx             # 主应用
-│       │   └── main.tsx            # 入口
-│       ├── index.html
-│       └── package.json
-│
-├── packages/
-│   ├── shared/             # 共享类型定义
-│   │   └── src/
-│   │       ├── node.ts             # 节点类型（包含 OpenClawGatewayStatus）
-│   │       └── index.ts
-│   └── protocol/           # 通信协议规范
-│
-├── docs/                   # 文档
-├── docker/                 # Docker 配置
-└── start-dashboard.sh      # 一键启动脚本
-```
-
-## 通信协议
-
-### Agent -> Server (状态上报)
-
-```json
-{
-  "type": "heartbeat",
-  "payload": {
-    "nodeId": "node-01",
-    "timestamp": "2026-03-17T22:37:00Z",
-    "status": {
-      "version": "0.1.0",
-      "uptime": 86400,
-      "memory": {
-        "used": 1.2,
-        "total": 4.0,
-        "percent": 30
-      },
-      "cpu": {
-        "percent": 15
-      },
-      "agents": {
-        "active": 3,
-        "max": 10,
-        "list": ["reef", "navigator", "shell"]
-      },
-      "skills": ["shell", "github", "tmux", "browser"],
-      "openclawGateway": {
-        "status": "running",
-        "version": "2026.3.2",
-        "pid": 1398337,
-        "port": 8000,
-        "healthy": false,
-        "doctorWarnings": [
-          {
-            "type": "telegram_group_policy",
-            "message": "channels.telegram.groupPolicy is \"allowlist\" but groupAllowFrom is empty",
-            "suggestion": "Add sender IDs to groupAllowFrom or set groupPolicy to \"open\"",
-            "severity": "warning"
-          }
-        ],
-        "troubles": [
-          {
-            "type": "auth_missing",
-            "message": "No authentication configured (apiKey or jwt)",
-            "severity": "warning"
-          }
-        ]
-      }
-    }
-  }
-}
-```
-
-### Server -> Agent (远程指令)
-
-```json
-{
-  "type": "command",
-  "id": "cmd-uuid-v4",
-  "timestamp": "2026-03-17T22:37:00Z",
-  "action": "restart_agent",
-  "params": {
-    "agentId": "reef",
-    "force": false
-  }
-}
-```
-
-**支持的远程指令：**
-
-| 指令 | 参数 | 说明 |
-|------|------|------|
-| `restart_agent` | `{ agentId, force }` | 重启指定的 Agent |
-| `fix_openclaw_config` | `{ backup, dryRun }` | 修复 OpenClaw 配置 |
-| `get_openclaw_status` | - | 获取 OpenClaw 详细状态 |
-| `validate_openclaw` | - | 验证 OpenClaw 配置 |
-
-## API 接口
-
-### REST API
-
-| 方法 | 路径 | 描述 | 认证 |
-|------|------|------|------|
-| POST | `/api/login` | Web UI 登录，获取 JWT Token | 否 |
-| GET | `/api/nodes` | 获取所有节点列表 | 是 |
-| GET | `/api/nodes/:id` | 获取单个节点详情 | 是 |
-| PATCH | `/api/nodes/:id/name` | 更新节点名称 | 是 |
-| GET | `/api/nodes/:id/status` | 获取节点历史状态 | 是 |
-| POST | `/api/nodes/:id/command` | 向节点发送指令 | 是 |
-| GET | `/api/health` | 服务健康检查 | 否 |
-
-**注意**：
-- 标记为"是"的端点需要在请求头中包含 JWT Token：`Authorization: Bearer <token>`
-- 如果未启用认证，所有端点均可直接访问
-- `/api/login` 端点不需要认证，用于获取 JWT Token
-
-### WebSocket 事件
-
-| 事件 | 方向 | 描述 |
-|------|------|------|
-| `agent:connect` | C->S | Agent 连接注册 |
-| `agent:heartbeat` | C->S | 心跳/状态上报 |
-| `agent:disconnect` | C->S | 断开连接 |
-| `server:command` | S->C | 下发远程指令 |
-| `dashboard:subscribe` | C->S | 仪表盘订阅更新 |
-| `dashboard:broadcast` | S->C | 广播状态变更 |
-
-## 配置说明
-
-### Agent 配置 (`caribbean-agent.json`)
-
-```json
-{
-  "server": {
-    "url": "ws://localhost:8080",
-    "reconnectInterval": 5000,
-    "heartbeatInterval": 30000
-  },
-  "node": {
-    "id": "auto",           // auto 或自定义 ID
-    "name": "production-01",
-    "tags": ["prod", "gpu"]
-  },
-  "openclaw": {
-    "configPath": "~/.openclaw/config.yaml",
-    "apiPort": 8080
-  },
-  "auth": {
-    "token": "your-secret-token"
-  }
-}
-```
-
-### Server 配置 (`caribbean-server.json`)
-
-```json
-{
-  "websocket": {
-    "port": 8080,
-    "path": "/ws/agent",
-    "maxConnections": 1000
-  },
-  "api": {
-    "port": 3000,
-    "host": "0.0.0.0",
-    "webDistPath": "./dist/web"
-  },
-  "database": {
-    "type": "sqlite",       // sqlite 或 postgresql
-    "path": "./data/caribbean.db"
-  },
-  "history": {
-    "retention": 5,        // 保留每个节点最近 5 条状态记录
-    "cleanup": "auto"      // 自动清理历史记录
-  },
-  "auth": {
-    "enabled": true,
-    "tokens": ["your-secret-token"],  // Agent 认证 Token
-    "user": {                          // Web UI 认证配置
-      "username": "admin",
-      "password": "your-secure-password"
-    },
-    "jwtSecret": "caribbean-jwt-secret-xxx"  // JWT 签名密钥（自动生成）
-  }
-}
-```
-
-## 数据库迁移系统
-
-Caribbean 提供自动化的数据库迁移系统，用于管理数据库 schema 版本和升级。
-
-### 迁移机制
-
-- **自动执行**：服务器启动时自动检查并执行未运行的迁移
-- **版本跟踪**：使用 `migrations` 表跟踪已执行的迁移版本
-- **幂等性**：每个迁移只执行一次，重复启动不会重复执行
-
-### 添加新迁移
-
-在 `apps/server/src/database.ts` 的 `getMigrations()` 方法中添加：
-
-```typescript
-private getMigrations(): Migration[] {
-  return [
-    {
-      version: 1,
-      name: 'add_client_ip_column',
-      up: `ALTER TABLE nodes ADD COLUMN client_ip TEXT;`
-    },
-    {
-      version: 2,
-      name: 'add_new_feature',
-      up: `ALTER TABLE nodes ADD COLUMN new_column TEXT DEFAULT 'default';`
-    }
-  ];
-}
-```
-
-### 迁移规则
-
-- `version` 必须唯一且递增
-- `name` 描述迁移目的
-- `up` 包含实际的 SQL 语句
-- 支持的数据库：SQLite 和 PostgreSQL
-
-### 现有数据库升级
-
-如果使用旧版本的 Caribbean，首次启动时会自动执行所有未运行的迁移。无需手动处理数据库文件，系统会自动升级 schema。
-
-## OpenClaw 状态保障
-
-Caribbean Agent 提供了完整的 OpenClaw Gateway 状态监控和自动修复功能。
-
-### 状态监控
-
-Agent 会定期采集 OpenClaw Gateway 的状态，包括：
-
-- **运行状态**：running / stopped / error
-- **进程信息**：PID、端口、版本
-- **健康检查**：综合评估整体健康状态
-- **Doctor Warnings**：配置警告和建议
-- **Troubles**：配置问题和错误
-
-### 智能诊断
-
-自动检测以下问题：
-
-#### Doctor Warnings
-- Telegram 群组策略配置问题
-- 缺失的 skills 配置
-- 缺失的 agents 配置
-
-#### Troubles
-- Gateway 端口配置缺失
-- 认证配置缺失
-- PID 文件缺失
-- 配置文件解析错误
-
-### 自动修复
-
-使用 `fix-openclaw` 命令自动修复常见问题：
-
-```bash
-# 检查状态
-caribbean-agent openclaw-status
-
-# 自动修复（带备份）
-caribbean-agent fix-openclaw --backup
-
-# 预览修复（不实际修改）
-caribbean-agent fix-openclaw --dry-run
-```
-
-**支持的自动修复：**
-
-| 问题类型 | 自动修复方案 |
-|---------|-------------|
-| Telegram 群组策略为 allowlist 但列表为空 | 自动设置为 open 策略 |
-| 缺失 skills 配置 | 自动添加默认 skills（shell, github, tmux, browser） |
-| 缺失 agents 配置 | 自动添加默认 agents（reef, navigator, shell） |
-| Gateway 端口缺失 | 自动设置默认端口 8000 |
-| 认证配置缺失 | 自动生成 API Key |
-
-### Web UI 显示
-
-Dashboard 会实时显示每个节点的 OpenClaw 状态：
-
-- **健康状态**：绿色（健康）/ 黄色（警告）/ 红色（错误）
-- **问题数量**：显示当前警告和问题总数
-- **图标指示**：使用不同图标区分严重级别
-  - ⚠️ 警告级别问题
-  - ❌ 错误级别问题
-  - ℹ️ 信息级别问题
-
-### 节点状态管理
-
-系统实现了智能的节点状态管理机制，支持服务器重启后完整保留节点配置：
-
-#### Agent 重连行为
-
-当 Agent 重新连接到服务器时：
-
-1. **节点注册**：服务器检查数据库中是否已存在该节点 ID
-    - **已存在**：从数据库加载已保存的 `name`、`tags` 和 `clientIp`，仅更新 `connected` 状态和 `last_seen` 时间戳
-    - **新节点**：使用客户端发送的 `name`、`tags` 和 `clientIp` 创建完整节点记录
-
-2. **即时状态检查**：连接后立即发送心跳，触发 OpenClaw Gateway 状态验证，无需等待心跳间隔
-
-3. **状态保留**：完整保留现有节点配置：
-   - `name` - 节点显示名称（用户自定义名称永久保存）
-   - `tags` - 节点标签（服务器重启后不会丢失）
-   - 历史状态数据
-
-**重要说明**：
-- 服务器重启后，内存中的节点信息会清空
-- 节点重连时，服务器会从数据库加载已存在的节点配置（name、tags 等）
-- 用户在 Web Dashboard 中修改的节点名称会被永久保存，服务器重启后仍然有效
-- 不会因节点重连、心跳或服务器重启而丢失自定义节点名称
-
-#### 节点断开处理
-
-当节点断开连接时：
-
-1. **状态更新**：
-   - `connected` → `false`
-   - `openclaw_status` → `'unknown'`
-   - `last_seen` → 当前时间戳
-
-2. **前端显示**：
-   - 连接状态：显示"离线"
-   - Gateway 状态：始终显示 `unknown` Badge
-   - CPU/运行时间：显示 `-`（无可用数据）
-
-3. **数据保留**：
-   - 历史记录保持完整
-   - 之前的状态数据保留用于分析
-
-## 开发指南
-
-### 环境准备
-
-```bash
-# 克隆仓库
-git clone https://github.com/your-org/caribbean.git
-cd caribbean
-
-# 安装依赖 (使用 pnpm)
-pnpm install
-
-# 构建所有包
-pnpm build
-```
-
-### 本地开发
-
-```bash
-# 启动 Server
-cd apps/server
-pnpm run build
-npm start
-
-# 启动 Agent (另一个终端)
-cd apps/agent
-pnpm run build
-npm start
-
-# 启动 Web Dashboard 开发服务器 (另一个终端，可选)
-cd apps/web
-pnpm dev
-```
-
-或者使用构建脚本（生产模式）：
-```bash
-cd apps/server
-pnpm run build:all
-npm start
-```
-
-### 运行测试
-
-```bash
-# 单元测试
-pnpm test
-
-# E2E 测试
-pnpm test:e2e
-
-# 代码检查
-pnpm lint
-```
-
-## 部署方案
-
-### Docker Compose (推荐)
-
-```yaml
-version: '3.8'
-services:
-  caribbean-server:
-    image: ghcr.io/your-org/caribbean-server:latest
-    ports:
-      - "3000:3000"    # Web UI
-      - "8080:8080"    # WebSocket
-    volumes:
-      - ./data:/app/data
-    environment:
-      - CARIBBEAN_AUTH_TOKEN=${TOKEN}
-    restart: unless-stopped
-
-  caribbean-agent:
-    image: ghcr.io/your-org/caribbean-agent:latest
-    environment:
-      - CARIBBEAN_SERVER_URL=ws://caribbean-server:8080
-      - CARIBBEAN_AUTH_TOKEN=${TOKEN}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
-```
-
-### Kubernetes
-
-```bash
-# 部署 Server
-kubectl apply -f k8s/server-deployment.yaml
-kubectl apply -f k8s/server-service.yaml
-
-# 部署 Agent DaemonSet (每个节点自动部署)
-kubectl apply -f k8s/agent-daemonset.yaml
-```
-
-## 路线图
-
-- [x] 基础架构设计
-- [x] Agent 状态采集
-- [x] WebSocket 双向通信
-- [x] REST API 接口
-- [x] 数据持久化层
-- [x] 服务管理命令（stop/restart）
-- [x] React Dashboard
-- [x] OpenClaw Gateway 状态监控
-- [x] OpenClaw 智能诊断（Doctor Warnings + Troubles）
-- [x] OpenClaw 配置自动修复
-- [x] 节点名称更新 API
-- [x] 数据库历史记录自动清理（保留最近 5 条）
-- [x] Web UI 详细状态显示（支持问题数量和严重级别）
-- [x] 节点重连时保留原有配置
-- [x] Agent 上线后即时状态检查
-- [x] 节点离线时正确显示 Gateway 状态为 unknown
-- [x] Web UI 用户认证（用户名/密码 + JWT）
-- [x] Agent Token 认证
-- [x] CLI 命令管理认证设置
-- [ ] 告警系统
-- [ ] 日志聚合
-- [ ] 性能分析
-- [ ] 多集群支持
-
-## 贡献指南
-
-我们欢迎所有形式的贡献！
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add some amazing feature'`)
-4. 推送分支 (`git push origin feature/amazing-feature`)
-5. 创建 Pull Request
-
-请确保：
-- 代码通过 TypeScript 类型检查
-- 所有测试通过
-- 提交信息遵循 [Conventional Commits](https://conventionalcommits.org/)
 
 ## 文档
 
 详细文档请查看 [docs/](docs/) 目录：
 
-- **[认证指南](docs/authentication.md)** - Agent 和 Web UI 认证配置详解
-  - Token 认证（Agent）
-  - 用户名/密码认证（Web UI）
-  - JWT Token 管理
-  - 安全最佳实践
-
-- **[API 文档](docs/api.md)** - REST API 和 WebSocket 接口说明
-  - API 端点列表
-  - 认证方式
-  - 请求/响应示例
-
-- **[部署指南](docs/deployment.md)** - 生产环境部署指南
-  - Docker 部署
-  - Docker Compose 配置
-  - Kubernetes 部署
-  - Systemd 服务配置
-  - 故障排查
+| 文档 | 说明 |
+|------|------|
+| [架构设计](docs/architecture.md) | 技术栈选型、项目结构、架构详解 |
+| [开发指南](docs/development.md) | 本地开发环境搭建、构建与测试 |
+| [部署指南](docs/deployment.md) | Docker、Kubernetes、Systemd 部署 |
+| [配置说明](docs/configuration.md) | Agent / Server 配置文件详解 |
+| [认证指南](docs/authentication.md) | Token 认证、JWT、安全最佳实践 |
+| [通信协议](docs/protocol.md) | WebSocket 协议、消息格式、事件定义 |
+| [API 文档](docs/api.md) | REST API 端点与 WebSocket 接口 |
+| [服务管理](docs/service-management.md) | CLI 命令、PID 管理、Systemd 集成 |
+| [OpenClaw 监控](docs/openclaw-monitoring.md) | Gateway 状态监控、智能诊断、自动修复 |
 
 ## 许可证
 
-[MIT](LICENSE) © Caribbean Contributors
+[MIT](LICENSE)

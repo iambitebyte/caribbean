@@ -302,6 +302,49 @@ server/        → Fastify + ws (keep current)
 
 This keeps the WebSocket/agent management separate and only migrates the web layer when it genuinely benefits from Next.js.
 
+## Project Structure
+
+```
+caribbean/
+├── apps/
+│   ├── agent/              # Node Agent
+│   │   └── src/
+│   │       ├── collector.ts    # Status collector
+│   │       ├── config-fixer.ts # OpenClaw config fixer
+│   │       ├── websocket.ts    # WebSocket client
+│   │       ├── cli.ts          # CLI commands
+│   │       └── index.ts        # Entry point
+│   │
+│   ├── server/             # Server
+│   │   └── src/
+│   │       ├── websocket-hub.ts    # WebSocket Hub
+│   │       ├── api.ts              # REST API
+│   │       ├── node-manager.ts     # Node management
+│   │       ├── database.ts         # Database management
+│   │       └── index.ts            # Entry point
+│   │
+│   └── web/                # Web Dashboard
+│       └── src/
+│           ├── components/          # UI components
+│           │   ├── ui/             # shadcn/ui components
+│           │   └── NodeCard.tsx    # Node card
+│           ├── lib/                # Utility functions
+│           ├── types/              # Type definitions
+│           ├── App.tsx             # Main app
+│           └── main.tsx            # Entry point
+│
+├── packages/
+│   ├── shared/             # Shared type definitions
+│   │   └── src/
+│   │       ├── node.ts             # Node types (includes OpenClawGatewayStatus)
+│   │       └── index.ts
+│   └── protocol/           # Communication protocol specs
+│
+├── docs/                   # Documentation
+├── docker/                 # Docker configuration
+└── start.sh                # One-click startup script
+```
+
 ## Summary
 
 | Aspect | Current Stack | Next.js |
@@ -316,19 +359,6 @@ This keeps the WebSocket/agent management separate and only migrates the web lay
 | Migration Cost | - | ❌ High |
 
 **Conclusion**: The current stack (Fastify + ws + Vite + React) is the right choice for Caribbean's use case. It's simple, fast, and fits the single-process, dual-port architecture perfectly.
-
-Next.js is a great framework, but it solves different problems than what Caribbean faces. The "don't fix what isn't broken" principle applies here.
-
-## Future Considerations
-
-If the web dashboard grows beyond a single-page monitoring view, consider:
-
-1. **Separate web as Next.js app**: Keep server unchanged, only migrate web
-2. **Add authentication UI**: Could justify a multi-page app
-3. **Public documentation site**: Next.js shines here
-4. **Team collaboration features**: Multi-user dashboards, permissions, etc.
-
-Until then, the current architecture remains optimal.
 
 ## IP Address Collection and Display
 
