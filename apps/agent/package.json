@@ -13,10 +13,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@caribbean/shared": "workspace:*",
     "@caribbean/protocol": "workspace:*",
-    "ws": "^8.16.0",
-    "commander": "^12.0.0"
+    "@caribbean/shared": "workspace:*",
+    "commander": "^12.0.0",
+    "node-os-utils": "^2.0.1",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

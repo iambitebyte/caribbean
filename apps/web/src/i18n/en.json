@@ -28,6 +28,7 @@
     "clientIp": "IP Address",
     "lastSeen": "Last Seen",
     "cpu": "CPU",
+    "memory": "Memory",
     "uptime": "Uptime",
     "connected": "Online",
     "disconnected": "Offline",

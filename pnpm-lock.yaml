@@ -27,6 +27,9 @@ importers:
       commander:
         specifier: ^12.0.0
         version: 12.1.0
+      node-os-utils:
+        specifier: ^2.0.1
+        version: 2.0.1
       ws:
         specifier: ^8.16.0
         version: 8.19.0
@@ -2674,6 +2677,11 @@ packages:
       - supports-color
     dev: false
     optional: true
+
+  /node-os-utils@2.0.1:
+    resolution: {integrity: sha512-rH2N3qHZETLhdgTGhMMCE8zU3gsWO4we1MFtrSiAI7tYWrnJRc6dk2PseV4co3Lb0v/MbRONLQI2biHQYbpTpg==}
+    engines: {node: '>=18.0.0'}
+    dev: false
 
   /node-releases@2.0.36:
     resolution: {integrity: sha512-TdC8FSgHz8Mwtw9g5L4gR/Sh9XhSP/0DEkQxfEFXOpiul5IiHgHan2VhYYb6agDSfp4KuvltmGApc8HMgUrIkA==}
