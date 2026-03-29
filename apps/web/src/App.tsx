@@ -493,12 +493,16 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
 
 export default function App() {
   const [authEnabled, setAuthEnabled] = useState(true)
+  const [authLoaded, setAuthLoaded] = useState(false)
 
   useEffect(() => {
     fetchAuthStatus()
       .then((data) => setAuthEnabled(data.enabled))
       .catch(() => setAuthEnabled(true))
+      .finally(() => setAuthLoaded(true))
   }, [])
+
+  if (!authLoaded) return null
 
   return (
     <Router>
