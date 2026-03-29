@@ -5,54 +5,22 @@ import { randomUUID } from 'crypto';
 import { Agent } from './index.js';
 import { OpenClawConfigFixer } from './config-fixer.js';
 import { StatusCollector } from './collector.js';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
+import {
+  readPid,
+  writePid,
+  removePid,
+  processExists,
+  spawnDaemon,
+  stopDaemon,
+} from '@caribbean/shared';
 
 const program = new Command();
 const CONFIG_PATH = join(homedir(), '.caribbean', 'agent.json');
 const PID_PATH = join(homedir(), '.caribbean', 'agent.pid');
-
-function writePid(pid: number): void {
-  writeFileSync(PID_PATH, pid.toString());
-}
-
-function readPid(): number | null {
-  if (!existsSync(PID_PATH)) return null;
-  const pid = parseInt(readFileSync(PID_PATH, 'utf-8'), 10);
-  return isNaN(pid) ? null : pid;
-}
-
-function removePid(): void {
-  if (existsSync(PID_PATH)) {
-    unlinkSync(PID_PATH);
-  }
-}
-
-function processExists(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function waitForProcessExit(pid: number, timeout: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const start = Date.now();
-    const interval = setInterval(() => {
-      if (!processExists(pid)) {
-        clearInterval(interval);
-        resolve(true);
-      }
-      if (Date.now() - start > timeout) {
-        clearInterval(interval);
-        resolve(false);
-      }
-    }, 100);
-  });
-}
+const LOG_PATH = join(homedir(), '.caribbean', 'agent.log');
 
 program
   .name('caribbean-agent')
@@ -105,9 +73,35 @@ program
   .description('Start the agent')
   .option('--server <url>', 'Override server URL')
   .option('--config <path>', 'Config file path', CONFIG_PATH)
+  .option('--foreground', 'Run in foreground')
   .action(async (options) => {
-    let config;
+    const configPath = options.config;
 
+    if (!options.foreground) {
+      const existingPid = readPid(PID_PATH);
+      if (existingPid && processExists(existingPid)) {
+        console.error(`Agent is already running (PID: ${existingPid})`);
+        console.error('Use `caribbean-agent stop` to stop it first.');
+        process.exit(1);
+      }
+      if (existingPid) removePid(PID_PATH);
+
+      const args = [process.argv[1], 'start', '--foreground'];
+      if (configPath !== CONFIG_PATH) args.push('--config', configPath);
+      if (options.server) args.push('--server', options.server);
+
+      const pid = spawnDaemon({
+        pidPath: PID_PATH,
+        logPath: LOG_PATH,
+        spawnArgs: args,
+      });
+
+      console.log(`Agent started in background (PID: ${pid})`);
+      console.log(`Log file: ${LOG_PATH}`);
+      return;
+    }
+
+    let config;
     if (options.server) {
       config = {
         server: { url: options.server },
@@ -119,41 +113,29 @@ program
       };
     } else {
       try {
-        const configContent = readFileSync(options.config, 'utf-8');
+        const configContent = readFileSync(configPath, 'utf-8');
         config = JSON.parse(configContent);
       } catch (error) {
-        console.error(`Failed to read config file: ${options.config}`);
+        console.error(`Failed to read config file: ${configPath}`);
         console.error('Run `caribbean-agent init` first.');
         process.exit(1);
       }
     }
 
-    const existingPid = readPid();
-    if (existingPid && processExists(existingPid)) {
-      console.error(`Agent is already running (PID: ${existingPid})`);
-      console.error('Use `caribbean-agent stop` to stop it first.');
-      process.exit(1);
-    }
-
-    if (existingPid) {
-      removePid();
-    }
-
     const agent = new Agent(config);
     await agent.start();
-    writePid(process.pid);
 
     process.on('SIGINT', () => {
       console.log('\n[Agent] Shutting down...');
       agent.stop();
-      removePid();
+      removePid(PID_PATH);
       process.exit(0);
     });
 
     process.on('SIGTERM', () => {
       console.log('\n[Agent] Shutting down...');
       agent.stop();
-      removePid();
+      removePid(PID_PATH);
       process.exit(0);
     });
   });
@@ -167,7 +149,11 @@ program
       const configContent = readFileSync(options.config, 'utf-8');
       const config = JSON.parse(configContent);
 
+      const pid = readPid(PID_PATH);
+      const running = pid !== null && processExists(pid);
+
       console.log('\nAgent Status:');
+      console.log(`  Running: ${running ? `Yes (PID: ${pid})` : 'No'}`);
       console.log(`  Node ID: ${config.node.id}`);
       console.log(`  Node Name: ${config.node.name}`);
       console.log(`  Server: ${config.server.url}`);
@@ -182,87 +168,45 @@ program
   .command('stop')
   .description('Stop the agent')
   .action(async () => {
-    const pid = readPid();
-
-    if (!pid) {
-      console.log('Agent is not running (no PID file found)');
-      return;
-    }
-
-    if (!processExists(pid)) {
-      console.log('Agent is not running (stale PID file)');
-      removePid();
-      return;
-    }
-
-    console.log(`Stopping agent (PID: ${pid})...`);
-    process.kill(pid, 'SIGTERM');
-
-    const exited = await waitForProcessExit(pid, 10000);
-
-    if (exited) {
-      console.log('Agent stopped gracefully');
-    } else {
-      console.log('Force stopping agent...');
-      process.kill(pid, 'SIGKILL');
-      await waitForProcessExit(pid, 1000);
-      console.log('Agent stopped (forced)');
-    }
-
-    removePid();
+    await stopDaemon(PID_PATH, 'Agent');
   });
 
 program
   .command('restart')
   .description('Restart the agent')
   .option('--config <path>', 'Config file path', CONFIG_PATH)
+  .option('--server <url>', 'Override server URL')
   .action(async (options) => {
-    const pid = readPid();
+    await stopDaemon(PID_PATH, 'Agent');
 
-    if (pid && processExists(pid)) {
-      console.log(`Stopping agent (PID: ${pid})...`);
-      process.kill(pid, 'SIGTERM');
-      await waitForProcessExit(pid, 10000);
+    const configPath = options.config;
+    const args = [process.argv[1], 'start', '--foreground'];
+    if (configPath !== CONFIG_PATH) args.push('--config', configPath);
+    if (options.server) args.push('--server', options.server);
 
-      if (processExists(pid)) {
-        console.log('Force stopping agent...');
-        process.kill(pid, 'SIGKILL');
-        await waitForProcessExit(pid, 1000);
-      }
-
-      removePid();
-    }
-
-    console.log('Starting agent...');
-
-    let config;
-
-    try {
-      const configContent = readFileSync(options.config, 'utf-8');
-      config = JSON.parse(configContent);
-    } catch (error) {
-      console.error(`Failed to read config file: ${options.config}`);
-      console.error('Run `caribbean-agent init` first.');
-      process.exit(1);
-    }
-
-    const agent = new Agent(config);
-    await agent.start();
-    writePid(process.pid);
-
-    process.on('SIGINT', () => {
-      console.log('\n[Agent] Shutting down...');
-      agent.stop();
-      removePid();
-      process.exit(0);
+    const pid = spawnDaemon({
+      pidPath: PID_PATH,
+      logPath: LOG_PATH,
+      spawnArgs: args,
     });
 
-    process.on('SIGTERM', () => {
-      console.log('\n[Agent] Shutting down...');
-      agent.stop();
-      removePid();
-      process.exit(0);
-    });
+    console.log(`Agent restarted in background (PID: ${pid})`);
+    console.log(`Log file: ${LOG_PATH}`);
+  });
+
+program
+  .command('logs')
+  .description('Show agent logs')
+  .option('--lines <number>', 'Number of lines to show', '50')
+  .action((options) => {
+    if (!existsSync(LOG_PATH)) {
+      console.log('No log file found');
+      return;
+    }
+    const content = readFileSync(LOG_PATH, 'utf-8');
+    const n = parseInt(options.lines, 10);
+    const lines = content.split('\n').slice(-n);
+    console.log(lines.join('\n'));
   });
 
 program
