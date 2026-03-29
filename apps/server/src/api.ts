@@ -90,6 +90,10 @@ export class ApiServer {
       return { status: 'ok', timestamp: new Date().toISOString() };
     });
 
+    this.fastify.get('/api/auth/status', async () => {
+      return { enabled: this.authEnabled };
+    });
+
     this.fastify.post('/api/login', async (request: any, reply: any) => {
       if (!this.authEnabled) {
         reply.code(400).send({ error: 'Authentication is not enabled' });
