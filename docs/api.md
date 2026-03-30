@@ -382,7 +382,8 @@ POST /api/nodes/:id/command
 |--------|-------------|--------|
 | `restart_agent` | Restart a specific agent | `agentId`, `force` |
 | `update_config` | Update node configuration | Configuration object |
-| `execute_task` | Execute a task on the node | Task details |
+| `openclaw_gateway_start` | Start OpenClaw Gateway on the node | — |
+| `openclaw_gateway_stop` | Stop OpenClaw Gateway on the node | — |
 
 **Response (200 OK):**
 
@@ -577,6 +578,16 @@ curl -X PATCH http://localhost:3000/api/nodes/node-01/name \
   -H "Content-Type: application/json" \
   -d '{"name": "new-name"}'
 
+# Send start gateway command
+curl -X POST http://localhost:3000/api/nodes/node-01/command \
+  -H "Content-Type: application/json" \
+  -d '{"action": "openclaw_gateway_start"}'
+
+# Send stop gateway command
+curl -X POST http://localhost:3000/api/nodes/node-01/command \
+  -H "Content-Type: application/json" \
+  -d '{"action": "openclaw_gateway_stop"}'
+
 # Send command
 curl -X POST http://localhost:3000/api/nodes/node-01/command \
   -H "Content-Type: application/json" \
@@ -600,17 +611,29 @@ const nameUpdate = await fetch('http://localhost:3000/api/nodes/node-01/name', {
 const nameResult = await nameUpdate.json();
 console.log(nameResult);
 
-// Send command
-const command = await fetch('http://localhost:3000/api/nodes/node-01/command', {
+// Send command to start OpenClaw Gateway
+const startCmd = await fetch('http://localhost:3000/api/nodes/node-01/command', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    action: 'restart_agent',
-    params: { agentId: 'reef' }
+    action: 'openclaw_gateway_start',
+    params: {}
   })
 });
-const result = await command.json();
-console.log(result);
+const startResult = await startCmd.json();
+console.log(startResult);
+
+// Send command to stop OpenClaw Gateway
+const stopCmd = await fetch('http://localhost:3000/api/nodes/node-01/command', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    action: 'openclaw_gateway_stop',
+    params: {}
+  })
+});
+const stopResult = await stopCmd.json();
+console.log(stopResult);
 ```
 
 ### Using Python (requests)
@@ -631,14 +654,25 @@ name_update = requests.patch(
 result = name_update.json()
 print(result)
 
-# Send command
-command = requests.post(
+# Send command to start OpenClaw Gateway
+start_cmd = requests.post(
     'http://localhost:3000/api/nodes/node-01/command',
     json={
-        'action': 'restart_agent',
-        'params': {'agentId': 'reef'}
+        'action': 'openclaw_gateway_start',
+        'params': {}
     }
 )
-result = command.json()
-print(result)
+start_result = start_cmd.json()
+print(start_result)
+
+# Send command to stop OpenClaw Gateway
+stop_cmd = requests.post(
+    'http://localhost:3000/api/nodes/node-01/command',
+    json={
+        'action': 'openclaw_gateway_stop',
+        'params': {}
+    }
+)
+stop_result = stop_cmd.json()
+print(stop_result)
 ```

@@ -1,19 +1,21 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom"
-import { NodeInfo } from "@/types"
+import { NodeInfo, OpenClawGatewayStatus } from "@/types"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table"
 import { Badge } from "@/components/ui/Badge"
+import { Checkbox } from "@/components/ui/Checkbox"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/DropdownMenu"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { EditNameDialog } from "@/components/EditNameDialog"
-import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle } from "lucide-react"
-import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName } from "@/lib/api"
+import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square } from "lucide-react"
+import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName, sendNodeCommand } from "@/lib/api"
 import { tokenManager } from "@/lib/auth"
+import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 import Login from "@/components/Login"
-import type { OpenClawGatewayStatus } from "@/types"
 
 function OpenClawGatewayStatusBadge({ status }: { status: string | OpenClawGatewayStatus }) {
   if (typeof status === 'string') {
@@ -56,12 +58,46 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [nodes, setNodes] = useState<NodeInfo[]>([])
-  const [stats, setStats] = useState<any>(null)
+  const [, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const [editingNode, setEditingNode] = useState<{ id: string; name: string } | null>(null)
   const [showAuthErrorDialog, setShowAuthErrorDialog] = useState(false)
+  const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set())
+  const [executing, setExecuting] = useState(false)
+
+  const getGatewayStatus = useCallback((node: NodeInfo): string => {
+    if (!node.connected || !node.status?.openclawGateway) return 'unknown'
+    const gw = node.status.openclawGateway
+    return typeof gw === 'string' ? gw : gw.status
+  }, [])
+
+  const toggleNode = useCallback((nodeId: string) => {
+    setSelectedNodes(prev => {
+      const next = new Set(prev)
+      if (next.has(nodeId)) next.delete(nodeId)
+      else next.add(nodeId)
+      return next
+    })
+  }, [])
+
+  const toggleAll = useCallback(() => {
+    if (selectedNodes.size === nodes.length) {
+      setSelectedNodes(new Set())
+    } else {
+      setSelectedNodes(new Set(nodes.map(n => n.id)))
+    }
+  }, [selectedNodes.size, nodes])
+
+  const selectedGatewayStatuses = nodes
+    .filter(n => selectedNodes.has(n.id))
+    .map(n => getGatewayStatus(n))
+
+  const canStart = selectedGatewayStatuses.length > 0 &&
+    selectedGatewayStatuses.every(s => s === 'stopped')
+  const canStop = selectedGatewayStatuses.length > 0 &&
+    selectedGatewayStatuses.every(s => s === 'running')
 
   const handleLogout = () => {
     tokenManager.removeToken();
@@ -73,17 +109,13 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
     navigate('/login');
   };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Try to fetch data from database, but don't clear existing data on failure
-      let nodesData = nodes
-      let statsData = stats
-
       try {
-        nodesData = await fetchDatabaseNodes()
+        const nodesData = await fetchDatabaseNodes()
         setNodes(nodesData)
       } catch (nodesErr: any) {
         console.error("Failed to fetch nodes from database:", nodesErr)
@@ -97,7 +129,7 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
       }
 
       try {
-        statsData = await fetchStats()
+        const statsData = await fetchStats()
         setStats(statsData)
       } catch (statsErr: any) {
         console.error("Failed to fetch stats:", statsErr)
@@ -105,7 +137,6 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
           setShowAuthErrorDialog(true);
           return;
         }
-        // Don't show error for stats, just log it
       }
 
       setHasLoadedOnce(true)
@@ -121,7 +152,38 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [hasLoadedOnce])
+
+  const handleBatchAction = useCallback(async (action: 'openclaw_gateway_start' | 'openclaw_gateway_stop') => {
+    const targets = nodes.filter(n => {
+      if (!n.connected) return false
+      const gwStatus = getGatewayStatus(n)
+      if (action === 'openclaw_gateway_start') return gwStatus !== 'running'
+      return gwStatus === 'running'
+    }).filter(n => selectedNodes.has(n.id))
+
+    if (targets.length === 0) return
+
+    setExecuting(true)
+    let successCount = 0
+    let failCount = 0
+
+    await Promise.allSettled(
+      targets.map(async (node) => {
+        try {
+          await sendNodeCommand(node.id, action)
+          successCount++
+        } catch {
+          failCount++
+        }
+      })
+    )
+
+    setExecuting(false)
+    setSelectedNodes(new Set())
+
+    setTimeout(() => loadData(), 2000)
+  }, [nodes, selectedNodes, getGatewayStatus, loadData])
 
   const handleEditName = (nodeId: string, name: string) => {
     setEditingNode({ id: nodeId, name: name })
@@ -231,7 +293,45 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
         )}
 
         <div>
-          <h2 className="text-xl font-semibold mb-8">{t('nodes.title')}</h2>
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-xl font-semibold">{t('nodes.title')}</h2>
+            <div className="flex items-center gap-3">
+              {selectedNodes.size > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {t('batchActions.selected', { count: selectedNodes.size })}
+                </span>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className={cn(
+                    "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium",
+                    "h-9 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90",
+                    "disabled:pointer-events-none disabled:opacity-50",
+                    executing && "opacity-50 pointer-events-none"
+                  )}
+                >
+                  {executing ? t('batchActions.executing') : t('batchActions.executeAction')}
+                  {!executing && <ChevronDown className="h-4 w-4" />}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem
+                    disabled={!canStart}
+                    onSelect={() => handleBatchAction('openclaw_gateway_start')}
+                  >
+                    <Play className="h-4 w-4 mr-2 text-green-500" />
+                    {t('batchActions.start')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canStop}
+                    onSelect={() => handleBatchAction('openclaw_gateway_stop')}
+                  >
+                    <Square className="h-4 w-4 mr-2 text-red-500" />
+                    {t('batchActions.stop')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
 
           {/* First time loading */}
           {loading && !hasLoadedOnce && (
@@ -317,6 +417,12 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">
+                          <Checkbox
+                            checked={nodes.length > 0 && selectedNodes.size === nodes.length}
+                            onCheckedChange={toggleAll}
+                          />
+                        </TableHead>
                         <TableHead className="w-16">{t('nodes.status')}</TableHead>
                         <TableHead>{t('nodes.instanceName')}</TableHead>
                         <TableHead>{t('nodes.id')}</TableHead>
@@ -333,8 +439,17 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                       {nodes.map((node) => (
                         <TableRow
                           key={node.id}
-                          className={node.connected ? "" : "bg-muted/30"}
+                          className={cn(
+                            node.connected ? "" : "bg-muted/30",
+                            selectedNodes.has(node.id) && "bg-blue-50/50 dark:bg-blue-900/10"
+                          )}
                         >
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedNodes.has(node.id)}
+                              onCheckedChange={() => toggleNode(node.id)}
+                            />
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-center">
                               {node.connected ? (

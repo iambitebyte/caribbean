@@ -149,6 +149,28 @@ The dashboard displays real-time OpenClaw status for each node:
 
 The dashboard shows the total count of active warnings and errors for each node, along with severity icons to help quickly identify issues.
 
+### Remote Gateway Management
+
+The dashboard supports remote Gateway lifecycle management. Users can select instances via checkboxes and use the "Execute Action" dropdown to start or stop the OpenClaw Gateway remotely.
+
+**Button availability rules:**
+
+| Condition | Start | Stop |
+|-----------|-------|------|
+| No instances selected | Disabled | Disabled |
+| All selected instances are `running` | Disabled | Enabled |
+| All selected instances are `stopped` | Enabled | Disabled |
+| Mixed statuses or contains `unknown`/`error` | Disabled | Disabled |
+
+**Execution flow:**
+
+1. User selects instances and clicks Start/Stop
+2. Dashboard sends `POST /api/nodes/:id/command` for each selected instance
+3. Server forwards the command to the agent via WebSocket
+4. Agent executes `openclaw gateway start/stop` locally via `execSync`
+5. Agent sends ack and triggers an immediate heartbeat with updated status
+6. Dashboard refreshes data and displays the updated Gateway status
+
 ---
 
 ## Node State Management

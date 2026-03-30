@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import { execSync } from 'child_process';
 import type { Message } from '@caribbean/protocol';
 import type { NodeStatus } from '@caribbean/shared';
 import os from 'os';
@@ -181,11 +182,11 @@ export class WebSocketClient {
     }
   }
 
-  private handleCommand(message: Message & { type: 'command' }): void {
+  private async handleCommand(message: Message & { type: 'command' }): Promise<void> {
     console.log('[Agent] Executing command:', message.action, message.params);
 
     try {
-      this.executeCommand(message.action, message.params);
+      await this.executeCommand(message.action, message.params);
 
       const ackMessage = {
         type: 'ack',
@@ -206,13 +207,25 @@ export class WebSocketClient {
     }
   }
 
-  private executeCommand(action: string, params: Record<string, unknown>): void {
+  private async executeCommand(action: string, params: Record<string, unknown>): Promise<void> {
     switch (action) {
       case 'restart_agent':
         console.log('[Agent] Restarting agent:', params);
         break;
       case 'update_config':
         console.log('[Agent] Updating config:', params);
+        break;
+      case 'openclaw_gateway_start':
+        console.log('[Agent] Starting OpenClaw gateway...');
+        execSync('openclaw gateway start', { timeout: 30000 });
+        console.log('[Agent] OpenClaw gateway started successfully');
+        this.sendHeartbeat();
+        break;
+      case 'openclaw_gateway_stop':
+        console.log('[Agent] Stopping OpenClaw gateway...');
+        execSync('openclaw gateway stop', { timeout: 30000 });
+        console.log('[Agent] OpenClaw gateway stopped successfully');
+        this.sendHeartbeat();
         break;
       default:
         throw new Error(`Unknown command: ${action}`);

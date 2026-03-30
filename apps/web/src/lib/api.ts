@@ -68,3 +68,12 @@ export async function fetchStats() {
   const response = await apiClient.get('/stats');
   return response.data;
 }
+
+export async function sendNodeCommand(
+  nodeId: string,
+  action: string,
+  params: Record<string, unknown> = {}
+): Promise<{ success: boolean; commandId: string; nodeId: string; action: string }> {
+  const response = await apiClient.post(`/nodes/${nodeId}/command`, { action, params });
+  return response.data;
+}
