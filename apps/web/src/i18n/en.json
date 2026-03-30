@@ -37,6 +37,13 @@
     "hoursAgo": "hours ago",
     "daysAgo": "days ago"
   },
+  "batchActions": {
+    "selected": "{{count}} instance(s) selected",
+    "executeAction": "Execute Action",
+    "executing": "Executing...",
+    "start": "Start",
+    "stop": "Stop"
+  },
   "errors": {
     "title": "Connection Error",
     "retry": "Retry",

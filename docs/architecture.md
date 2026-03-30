@@ -42,6 +42,7 @@ Caribbean is an OpenClaw cluster management hub that provides real-time monitori
 - Gateway status monitoring with health badges
 - CPU usage and uptime display
 - Custom node name editing
+- Batch instance selection and remote Gateway start/stop
 - Bilingual support (English/Chinese)
 
 ### Shared Packages
@@ -192,6 +193,65 @@ When a node disconnects:
 | **Latency** | ✅ Instant detection | ⚠️ Network delays |
 | **Complexity** | ✅ Simple and reliable | ❌ Hardcoded URLs |
 | **Scalability** | ✅ Self-contained | ❌ Server bottleneck |
+
+## Remote Gateway Management
+
+### Overview
+
+Caribbean supports remote OpenClaw Gateway lifecycle management through the Web Dashboard. Users can select instances and execute `openclaw gateway start` or `openclaw gateway stop` commands remotely.
+
+### Command Flow
+
+```
+Web Dashboard (select instances → click Start/Stop)
+    │
+    ▼ POST /api/nodes/:id/command { action: "openclaw_gateway_start/stop" }
+Server (api.ts → websocket-hub.ts)
+    │
+    ▼ sendCommand(nodeId, action, params) via WebSocket CommandMessage
+Agent (websocket.ts)
+    │
+    ▼ execSync('openclaw gateway start/stop') → send ack → trigger immediate heartbeat
+Server receives ack → next heartbeat refreshes status
+    │
+    ▼
+Web Dashboard (polls every 10s) → displays updated Gateway status
+```
+
+### Batch Operation Logic
+
+The Web Dashboard provides a batch operation dropdown with the following rules:
+
+| Condition | Start | Stop |
+|-----------|-------|------|
+| No instances selected | Disabled | Disabled |
+| All selected instances are `running` | Disabled | Enabled |
+| All selected instances are `stopped` | Enabled | Disabled |
+| Mixed statuses or contains `unknown`/`error` | Disabled | Disabled |
+
+### Agent-Side Execution
+
+When the agent receives a gateway command:
+
+1. **Execute**: Runs `openclaw gateway start` or `openclaw gateway stop` via `execSync` (30s timeout)
+2. **Acknowledge**: Sends success/failure acknowledgment back to server
+3. **Immediate Heartbeat**: Triggers an immediate heartbeat to report updated Gateway status
+4. **Status Update**: Server receives updated status, Web Dashboard reflects change on next poll
+
+### API Endpoint
+
+```http
+POST /api/nodes/:id/command
+Content-Type: application/json
+
+{ "action": "openclaw_gateway_start" }
+{ "action": "openclaw_gateway_stop" }
+```
+
+Error response if node is offline:
+```json
+{ "success": false, "error": "Node not connected" }
+```
 
 ## Why Not Next.js?
 

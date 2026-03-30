@@ -118,9 +118,21 @@ The server can send remote commands to connected agents.
 | Command | Parameters | Description |
 |---------|-----------|-------------|
 | `restart_agent` | `{ agentId, force }` | Restart a specific OpenClaw agent |
+| `update_config` | Configuration object | Update node configuration |
+| `openclaw_gateway_start` | — | Start OpenClaw Gateway on the agent node |
+| `openclaw_gateway_stop` | — | Stop OpenClaw Gateway on the agent node |
 | `fix_openclaw_config` | `{ backup, dryRun }` | Fix OpenClaw configuration issues |
 | `get_openclaw_status` | — | Get detailed OpenClaw Gateway status |
 | `validate_openclaw` | — | Validate OpenClaw configuration file |
+
+### Gateway Command Flow
+
+When a gateway start/stop command is received:
+
+1. Agent executes `openclaw gateway start` or `openclaw gateway stop` via `execSync` (30s timeout)
+2. Agent sends back an `ack` message with success/failure status
+3. Agent triggers an immediate heartbeat to report updated Gateway status to the server
+4. Web dashboard reflects the status change on next data refresh
 
 ### Command Acknowledgment
 

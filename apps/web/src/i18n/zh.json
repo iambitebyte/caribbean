@@ -37,6 +37,13 @@
     "hoursAgo": "小时前",
     "daysAgo": "天前"
   },
+  "batchActions": {
+    "selected": "已选择 {{count}} 个实例",
+    "executeAction": "执行操作",
+    "executing": "执行中...",
+    "start": "启动",
+    "stop": "停止"
+  },
   "errors": {
     "title": "连接错误",
     "retry": "重试",
