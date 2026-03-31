@@ -59,6 +59,10 @@ export async function updateNodeName(nodeId: string, name: string): Promise<void
   await apiClient.patch(`/nodes/${nodeId}/name`, { name });
 }
 
+export async function deleteNode(nodeId: string): Promise<void> {
+  await apiClient.delete(`/nodes/${nodeId}`);
+}
+
 export async function fetchNode(id: string): Promise<NodeInfo | null> {
   const response = await apiClient.get(`/nodes/${id}`);
   return response.data;

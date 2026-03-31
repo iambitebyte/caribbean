@@ -25,6 +25,8 @@ A web-based dashboard for monitoring and managing Caribbean cluster nodes.
 - **Health status tracking** - Monitor instance health with color-coded indicators
 - **Dynamic animations** - Smooth transitions and hover effects using Framer Motion
 - **Memory usage visualization** - Progress bars showing resource utilization
+- **Batch operations** - Select multiple instances and perform bulk actions (start, stop, delete)
+- **Delete instances** - Remove instances from the database including their status history
 
 ## Getting Started
 
@@ -65,8 +67,13 @@ The dashboard connects to the Caribbean Server HTTP API running on `http://local
 
 - `GET /api/health` - Server health check
 - `GET /api/nodes` - List all nodes
+- `GET /api/nodes/database` - List all nodes from database
 - `GET /api/nodes/:id` - Get node details
+- `GET /api/nodes/:id/status` - Get node status
 - `GET /api/stats` - Get cluster statistics
+- `PATCH /api/nodes/:id/name` - Update node name
+- `POST /api/nodes/:id/command` - Send command to node
+- `DELETE /api/nodes/:id` - Delete node from database
 
 During development, Vite proxies API requests to the backend server.
 

@@ -10,6 +10,8 @@
 ✅ 响应式网格布局
 ✅ 现代化 UI（基于 shadcn/ui 和 TailwindCSS）
 ✅ 已集成到 Server，无需单独部署
+✅ 批量操作 - 选择多个实例执行启动、停止或删除操作
+✅ 删除实例 - 从数据库中删除节点及其历史记录
 
 ## 快速启动
 
@@ -84,9 +86,12 @@ Web Dashboard 通过以下 API 端点获取数据：
 |------|------|------|
 | `/api/health` | GET | 服务器健康检查 |
 | `/api/nodes` | GET | 获取所有节点列表 |
+| `/api/nodes/database` | GET | 从数据库获取所有节点列表 |
 | `/api/nodes/:id` | GET | 获取单个节点详情 |
 | `/api/nodes/:id/status` | GET | 获取节点状态 |
+| `/api/nodes/:id/name` | PATCH | 更新节点名称 |
 | `/api/nodes/:id/command` | POST | 向节点发送指令 |
+| `/api/nodes/:id` | DELETE | 删除节点 |
 | `/api/stats` | GET | 获取集群统计信息 |
 
 ## 配置

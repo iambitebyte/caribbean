@@ -50,6 +50,15 @@ export class NodeManager {
     }
   }
 
+  removeNode(nodeId: string): void {
+    const node = this.nodes.get(nodeId);
+    if (node) {
+      this.nodes.delete(nodeId);
+      this.nodeStatus.delete(nodeId);
+      console.log(`[Server] Node removed: ${node.name} (${nodeId})`);
+    }
+  }
+
   getNode(nodeId: string): NodeInfo | undefined {
     return this.nodes.get(nodeId);
   }

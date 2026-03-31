@@ -27,6 +27,7 @@ export class ApiServer {
   private sendCommand: (nodeId: string, action: string, params: Record<string, unknown>) => string;
   private getDatabaseNodes?: () => Promise<NodeInfo[]>;
   private updateNodeName?: (nodeId: string, name: string) => Promise<void>;
+  private deleteNode?: (nodeId: string) => Promise<void>;
   private authEnabled: boolean;
 
   constructor(
@@ -35,7 +36,8 @@ export class ApiServer {
     getAllNodes: () => NodeInfo[],
     sendCommand: (nodeId: string, action: string, params: Record<string, unknown>) => string,
     getDatabaseNodes?: () => Promise<NodeInfo[]>,
-    updateNodeName?: (nodeId: string, name: string) => Promise<void>
+    updateNodeName?: (nodeId: string, name: string) => Promise<void>,
+    deleteNode?: (nodeId: string) => Promise<void>
   ) {
     this.config = config;
     this.getNodeInfo = getNodeInfo;
@@ -43,6 +45,7 @@ export class ApiServer {
     this.sendCommand = sendCommand;
     this.getDatabaseNodes = getDatabaseNodes;
     this.updateNodeName = updateNodeName;
+    this.deleteNode = deleteNode;
     this.authEnabled = !!config.auth?.enabled && !!config.auth?.user;
     this.fastify = Fastify({ logger: false });
     this.fastify.register(cors, {
@@ -219,6 +222,23 @@ export class ApiServer {
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error'
         });
+      }
+    });
+
+    this.fastify.delete('/api/nodes/:id', async (request: any, reply: any) => {
+      const { id } = request.params;
+
+      if (this.deleteNode) {
+        try {
+          await this.deleteNode(id);
+          reply.send({ success: true, nodeId: id });
+        } catch (error) {
+          reply.code(500).send({
+            error: error instanceof Error ? error.message : 'Failed to delete node'
+          });
+        }
+      } else {
+        reply.code(501).send({ error: 'Database not available' });
       }
     });
 

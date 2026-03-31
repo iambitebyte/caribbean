@@ -350,6 +350,57 @@ PATCH /api/nodes/:id/name
 
 ---
 
+### Delete Node
+
+Delete a node from the database. This will remove the node record and all associated status history.
+
+**Authentication**: Required (if enabled)
+
+**Request:**
+
+```http
+DELETE /api/nodes/:id
+Authorization: Bearer <your-jwt-token>
+```
+
+**Parameters:**
+
+- `id` (path): Node ID (UUID)
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "nodeId": "node-01"
+}
+```
+
+**Response (500 Internal Server Error):**
+
+```json
+{
+  "error": "Failed to delete node"
+}
+```
+
+**Response (501 Not Implemented):**
+
+```json
+{
+  "error": "Database not available"
+}
+```
+
+**Important Notes:**
+- This operation will permanently delete the node from the database
+- All associated status history records will be deleted due to `ON DELETE CASCADE` foreign key constraint
+- The node will also be removed from the in-memory node manager
+- If the node is currently connected, it will appear as a new node when it reconnects
+- This action cannot be undone
+
+---
+
 ### Send Command to Node
 
 Send a remote command to a specific node.
@@ -578,6 +629,9 @@ curl -X PATCH http://localhost:3000/api/nodes/node-01/name \
   -H "Content-Type: application/json" \
   -d '{"name": "new-name"}'
 
+# Delete a node
+curl -X DELETE http://localhost:3000/api/nodes/node-01
+
 # Send start gateway command
 curl -X POST http://localhost:3000/api/nodes/node-01/command \
   -H "Content-Type: application/json" \
@@ -610,6 +664,13 @@ const nameUpdate = await fetch('http://localhost:3000/api/nodes/node-01/name', {
 });
 const nameResult = await nameUpdate.json();
 console.log(nameResult);
+
+// Delete a node
+const deleteCmd = await fetch('http://localhost:3000/api/nodes/node-01', {
+  method: 'DELETE'
+});
+const deleteResult = await deleteCmd.json();
+console.log(deleteResult);
 
 // Send command to start OpenClaw Gateway
 const startCmd = await fetch('http://localhost:3000/api/nodes/node-01/command', {
@@ -653,6 +714,11 @@ name_update = requests.patch(
 )
 result = name_update.json()
 print(result)
+
+# Delete a node
+delete_cmd = requests.delete('http://localhost:3000/api/nodes/node-01')
+delete_result = delete_cmd.json()
+print(delete_result)
 
 # Send command to start OpenClaw Gateway
 start_cmd = requests.post(
