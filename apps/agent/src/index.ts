@@ -27,7 +27,7 @@ export class Agent {
   private collector: StatusCollector;
   private nodeId: string;
 
-  constructor(config: AgentConfig) {
+  constructor(config: AgentConfig, debug: boolean = false) {
     this.nodeId = config.node.id || randomUUID();
     this.collector = new StatusCollector();
 
@@ -42,12 +42,21 @@ export class Agent {
         version: '0.1.0',
         authToken: config.auth?.token
       },
-      () => this.collector.collect()
+      () => this.collector.collect(),
+      debug
     );
   }
 
   async start(): Promise<void> {
+    if (this.wsClient['debug']) {
+      console.log('[Agent] [DEBUG] ===== Starting Caribbean Agent =====');
+      console.log('[Agent] [DEBUG] Node ID:', this.nodeId);
+      console.log('[Agent] [DEBUG] Agent version: 0.1.0');
+    }
     console.log(`[Agent] Starting node ${this.nodeId}`);
+    if (this.wsClient['debug']) {
+      console.log('[Agent] [DEBUG] Initiating WebSocket connection...');
+    }
     this.wsClient.connect();
   }
 
