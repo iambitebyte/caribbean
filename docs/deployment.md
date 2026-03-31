@@ -15,6 +15,7 @@ For detailed authentication configuration and security best practices, see the [
 - [Docker Compose](#docker-compose)
 - [Kubernetes](#kubernetes)
 - [Systemd Service](#systemd-service)
+- [Nginx Reverse Proxy](#nginx-reverse-proxy)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
 
@@ -483,6 +484,203 @@ npx tsx apps/server/src/cli.js restart
 npx tsx apps/server/src/cli.js --help
 ```
 
+## Nginx Reverse Proxy
+
+For production deployments, it's recommended to use Nginx as a reverse proxy to handle both the REST API (port 3000) and WebSocket connections (port 8080).
+
+### Basic Configuration
+
+Create `/etc/nginx/sites-available/caribbean`:
+
+```nginx
+server {
+  server_name your-domain.com;
+  listen 80;
+
+  # WebSocket endpoint for Agent connections
+  location /ws/agent {
+    proxy_pass http://127.0.0.1:8080;
+
+    # Required for WebSocket
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    # Pass original headers
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+    # Timeout settings for WebSocket long connections
+    proxy_read_timeout 86400s;
+    proxy_send_timeout 86400s;
+  }
+
+  # REST API and Web UI
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+### HTTPS Configuration with Let's Encrypt
+
+```nginx
+server {
+  server_name your-domain.com;
+  listen 80;
+  return 301 https://$server_name$request_uri;
+}
+
+server {
+  server_name your-domain.com;
+  listen 443 ssl http2;
+
+  # SSL certificates (from Let's Encrypt)
+  ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+
+  # SSL configuration
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_ciphers HIGH:!aNULL:!MD5;
+  ssl_prefer_server_ciphers on;
+
+  # WebSocket endpoint for Agent connections
+  location /ws/agent {
+    proxy_pass http://127.0.0.1:8080;
+
+    # Required for WebSocket
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    # Pass original headers
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    # Timeout settings for WebSocket long connections
+    proxy_read_timeout 86400s;
+    proxy_send_timeout 86400s;
+  }
+
+  # REST API and Web UI
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+### Key Configuration Points
+
+1. **WebSocket Path Matching**: `location /ws/agent` must be placed **before** `location /` because nginx matches the most specific path first
+2. **No Trailing Slash in proxy_pass**: `http://127.0.0.1:8080` (not `http://127.0.0.1:8080/`) to preserve the full path
+3. **WebSocket Headers**:
+   - `Upgrade: websocket` and `Connection: upgrade` are required for WebSocket handshake
+   - `proxy_http_version 1.1` is required (WebSocket doesn't work with HTTP/1.0)
+4. **Timeout Settings**:
+   - `proxy_read_timeout 86400s` (24 hours) prevents disconnection of long-lived connections
+   - `proxy_send_timeout 86400s` (24 hours) for sending large payloads
+
+### Deploying Nginx Configuration
+
+```bash
+# Create configuration file
+sudo nano /etc/nginx/sites-available/caribbean
+
+# Create symlink to enable site
+sudo ln -s /etc/nginx/sites-available/caribbean /etc/nginx/sites-enabled/
+
+# Test configuration
+sudo nginx -t
+
+# Reload nginx
+sudo systemctl reload nginx
+
+# Enable nginx on boot
+sudo systemctl enable nginx
+```
+
+### Testing WebSocket Connection
+
+After deploying with Nginx, test the WebSocket endpoint:
+
+```bash
+# Test WebSocket handshake
+curl -i -N \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Version: 13" \
+  -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+  http://your-domain.com/ws/agent
+
+# Expected response: HTTP/1.1 101 Switching Protocols
+```
+
+### Updating Agent Configuration
+
+When using Nginx reverse proxy, configure agents to connect through the proxy:
+
+```bash
+# Initialize agent with proxy URL
+caribbean-agent init --server wss://your-domain.com/ws/agent
+
+# Or override server URL when starting
+caribbean-agent start --server wss://your-domain.com/ws/agent
+```
+
+### Troubleshooting Nginx
+
+**WebSocket 404 Error**
+
+If agents get 404 errors:
+
+```bash
+# Check nginx error logs
+sudo tail -f /var/log/nginx/error.log
+
+# Verify path order (ws/agent before /)
+cat /etc/nginx/sites-available/caribbean | grep location
+
+# Test nginx config
+sudo nginx -t
+```
+
+**WebSocket Connection Timeout**
+
+If connections timeout frequently:
+
+```nginx
+# Increase timeout values in nginx config
+proxy_read_timeout 86400s;
+proxy_send_timeout 86400s;
+```
+
+**Connection Refused**
+
+```bash
+# Check if backend services are running
+curl http://localhost:8080/ws/agent
+curl http://localhost:3000/api
+
+# Check nginx is running
+sudo systemctl status nginx
+
+# Check ports are listening
+sudo netstat -tlnp | grep -E ':(80|443|3000|8080)'
+```
+
 ## Configuration
 
 ### Server Configuration
@@ -649,12 +847,20 @@ kubectl get nodes --show-labels
 **Enable debug logging**
 
 ```bash
-# Server
-CARIBBEAN_LOG_LEVEL=debug caribbean-server start
+# Agent with debug mode (shows detailed WebSocket logs)
+caribbean-agent start --debug
+caribbean-agent start --debug --foreground
 
-# Agent
-CARIBBEAN_LOG_LEVEL=debug caribbean-agent start
+# Or restart with debug
+caribbean-agent restart --debug
 ```
+
+Debug logging provides:
+- Connection details (URL, headers, local IP)
+- WebSocket state changes (CONNECTING, OPEN, CLOSING, CLOSED)
+- Message payloads (connect, heartbeat, command, ack)
+- Error details with stack traces
+- Connection close codes with meanings
 
 **Database History Retention**
 
