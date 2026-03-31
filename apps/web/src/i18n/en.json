@@ -42,7 +42,11 @@
     "executeAction": "Execute Action",
     "executing": "Executing...",
     "start": "Start",
-    "stop": "Stop"
+    "stop": "Stop",
+    "delete": "Delete",
+    "deleteConfirmTitle": "Confirm Delete",
+    "deleteConfirmMessage": "Are you sure you want to delete the selected {{count}} instance(s)? This will remove the node records and history from the database and cannot be undone.",
+    "cancel": "Cancel"
   },
   "errors": {
     "title": "Connection Error",

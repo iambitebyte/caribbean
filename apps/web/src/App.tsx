@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { EditNameDialog } from "@/components/EditNameDialog"
 import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square } from "lucide-react"
-import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName, sendNodeCommand } from "@/lib/api"
+import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName, sendNodeCommand, deleteNode } from "@/lib/api"
 import { tokenManager } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
@@ -66,6 +66,7 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
   const [showAuthErrorDialog, setShowAuthErrorDialog] = useState(false)
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set())
   const [executing, setExecuting] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const getGatewayStatus = useCallback((node: NodeInfo): string => {
     if (!node.connected || !node.status?.openclawGateway) return 'unknown'
@@ -201,6 +202,31 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
     }
   }
 
+  const handleDeleteNodes = async () => {
+    if (selectedNodes.size === 0) return
+
+    setExecuting(true)
+    let successCount = 0
+    let failCount = 0
+
+    await Promise.allSettled(
+      Array.from(selectedNodes).map(async (nodeId) => {
+        try {
+          await deleteNode(nodeId)
+          successCount++
+        } catch {
+          failCount++
+        }
+      })
+    )
+
+    setExecuting(false)
+    setSelectedNodes(new Set())
+    setShowDeleteDialog(false)
+
+    setTimeout(() => loadData(), 500)
+  }
+
   useEffect(() => {
     loadData()
     const interval = setInterval(loadData, 10000) // Refresh every 10 seconds
@@ -327,6 +353,13 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                   >
                     <Square className="h-4 w-4 mr-2 text-red-500" />
                     {t('batchActions.stop')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={selectedNodes.size === 0}
+                    onSelect={() => setShowDeleteDialog(true)}
+                  >
+                    <AlertCircle className="h-4 w-4 mr-2 text-destructive" />
+                    {t('batchActions.delete')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -558,15 +591,51 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
            </>
          )}
          
-          <EditNameDialog
-            isOpen={editingNode !== null}
-            onClose={() => setEditingNode(null)}
-            nodeId={editingNode?.id || ''}
-            currentName={editingNode?.name || ''}
-            onSave={handleSaveName}
-          />
+           <EditNameDialog
+             isOpen={editingNode !== null}
+             onClose={() => setEditingNode(null)}
+             nodeId={editingNode?.id || ''}
+             currentName={editingNode?.name || ''}
+             onSave={handleSaveName}
+           />
 
-          <AnimatePresence>
+           <AnimatePresence>
+             {showDeleteDialog && (
+               <motion.div
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 exit={{ opacity: 0 }}
+                 className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                 onClick={() => setShowDeleteDialog(false)}
+               >
+                 <motion.div
+                   initial={{ opacity: 0, scale: 0.95 }}
+                   animate={{ opacity: 1, scale: 1 }}
+                   exit={{ opacity: 0, scale: 0.95 }}
+                   onClick={(e) => e.stopPropagation()}
+                   className="bg-card rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
+                 >
+                   <div className="flex items-center gap-3 mb-4">
+                     <AlertCircle className="h-6 w-6 text-destructive" />
+                     <h3 className="text-lg font-semibold">{t('batchActions.deleteConfirmTitle')}</h3>
+                   </div>
+                   <p className="text-muted-foreground mb-6">
+                     {t('batchActions.deleteConfirmMessage', { count: selectedNodes.size })}
+                   </p>
+                   <div className="flex gap-3 justify-end">
+                     <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+                       {t('batchActions.cancel')}
+                     </Button>
+                     <Button variant="destructive" onClick={handleDeleteNodes} disabled={executing}>
+                       {executing ? t('batchActions.executing') : t('batchActions.delete')}
+                     </Button>
+                   </div>
+                 </motion.div>
+               </motion.div>
+             )}
+           </AnimatePresence>
+
+           <AnimatePresence>
             {showAuthErrorDialog && (
               <motion.div
                 initial={{ opacity: 0 }}

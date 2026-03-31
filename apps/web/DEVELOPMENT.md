@@ -91,21 +91,30 @@ server: {
 
 - `GET /api/health` - 服务器健康检查
 - `GET /api/nodes` - 获取所有节点列表
+- `GET /api/nodes/database` - 从数据库获取所有节点列表
 - `GET /api/nodes/:id` - 获取单个节点详情
 - `GET /api/nodes/:id/status` - 获取节点状态
+- `PATCH /api/nodes/:id/name` - 更新节点名称
 - `POST /api/nodes/:id/command` - 向节点发送指令
+- `DELETE /api/nodes/:id` - 删除节点
 - `GET /api/stats` - 获取集群统计信息
 
 ### API 调用示例
 
 ```typescript
-import { fetchNodes, fetchStats } from '@/lib/api'
+import { fetchNodes, fetchStats, updateNodeName, deleteNode } from '@/lib/api'
 
 // 获取所有节点
 const nodes = await fetchNodes()
 
 // 获取集群统计
 const stats = await fetchStats()
+
+// 更新节点名称
+await updateNodeName('node-01', 'new-name')
+
+// 删除节点
+await deleteNode('node-01')
 ```
 
 ## 组件开发

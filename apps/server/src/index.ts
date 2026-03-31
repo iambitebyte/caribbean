@@ -91,6 +91,12 @@ export class CaribbeanServer {
             }
             await this.database.saveNode(node!);
           }
+        },
+        async (nodeId: string) => {
+          if (this.database) {
+            await this.database.deleteNode(nodeId);
+            this.nodeManager.removeNode(nodeId);
+          }
         }
       );
     }
