@@ -74,6 +74,7 @@ program
   .option('--server <url>', 'Override server URL')
   .option('--config <path>', 'Config file path', CONFIG_PATH)
   .option('--foreground', 'Run in foreground')
+  .option('--debug', 'Enable debug logging')
   .action(async (options) => {
     const configPath = options.config;
 
@@ -89,6 +90,7 @@ program
       const args = [process.argv[1], 'start', '--foreground'];
       if (configPath !== CONFIG_PATH) args.push('--config', configPath);
       if (options.server) args.push('--server', options.server);
+      if (options.debug) args.push('--debug');
 
       const pid = spawnDaemon({
         pidPath: PID_PATH,
@@ -122,7 +124,7 @@ program
       }
     }
 
-    const agent = new Agent(config);
+    const agent = new Agent(config, options.debug);
     await agent.start();
 
     process.on('SIGINT', () => {
@@ -176,6 +178,7 @@ program
   .description('Restart the agent')
   .option('--config <path>', 'Config file path', CONFIG_PATH)
   .option('--server <url>', 'Override server URL')
+  .option('--debug', 'Enable debug logging')
   .action(async (options) => {
     await stopDaemon(PID_PATH, 'Agent');
 
@@ -183,6 +186,7 @@ program
     const args = [process.argv[1], 'start', '--foreground'];
     if (configPath !== CONFIG_PATH) args.push('--config', configPath);
     if (options.server) args.push('--server', options.server);
+    if (options.debug) args.push('--debug');
 
     const pid = spawnDaemon({
       pidPath: PID_PATH,
