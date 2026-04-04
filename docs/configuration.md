@@ -169,6 +169,22 @@ caribbean-server set-auth --username admin --password your-secure-password
 caribbean-server set-auth --disable
 ```
 
+### Web UI Settings (Recommended)
+
+You can also manage authentication settings directly from the Web UI:
+
+1. Access the dashboard at `http://localhost:3000`
+2. Click the **Settings** (gear icon) button
+3. Configure authentication settings
+4. Changes take effect immediately without server restart
+
+**Benefits of Web UI Settings:**
+- No server restart required
+- Automatic token renewal when credentials change
+- User-friendly interface
+- Real-time validation
+- Hot reload of authentication configuration
+
 ---
 
 ## Environment Variables

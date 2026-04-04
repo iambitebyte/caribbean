@@ -119,13 +119,13 @@ export async function getNodeConfig(nodeId: string): Promise<unknown> {
 
 export async function getNodeLogs(nodeId: string): Promise<string> {
   const commandResponse = await sendNodeCommand(nodeId, 'read_logs', {});
-  
+
   const maxRetries = 10;
   const retryDelay = 500;
 
   for (let i = 0; i < maxRetries; i++) {
     await new Promise(resolve => setTimeout(resolve, retryDelay));
-    
+
     try {
       const result = await getCommandResult(commandResponse.commandId);
       if (result.success && result.data) {
@@ -143,4 +143,25 @@ export async function getNodeLogs(nodeId: string): Promise<string> {
   }
 
   throw new Error('Timeout waiting for command result');
+}
+
+export async function fetchSettings(): Promise<{
+  auth: {
+    enabled: boolean;
+    username?: string;
+    agentTokenSet: boolean;
+  };
+}> {
+  const response = await apiClient.get('/settings');
+  return response.data;
+}
+
+export async function updateAuthSettings(data: {
+  enabled?: boolean;
+  username?: string;
+  password?: string;
+  agentToken?: string;
+}): Promise<{ success: boolean; token?: string }> {
+  const response = await apiClient.post('/settings/auth', data);
+  return response.data;
 }

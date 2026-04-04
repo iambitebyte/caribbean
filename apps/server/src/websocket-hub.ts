@@ -46,6 +46,22 @@ export class WebSocketHub {
           return;
         }
 
+        if (this.config.authToken) {
+          const authHeader = req.headers['authorization'];
+          if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.log(`[Server] Rejecting connection: missing or invalid authorization header`);
+            ws.close(1008, 'Unauthorized');
+            return;
+          }
+
+          const token = authHeader.substring(7);
+          if (token !== this.config.authToken) {
+            console.log(`[Server] Rejecting connection: invalid token`);
+            ws.close(1008, 'Unauthorized');
+            return;
+          }
+        }
+
         console.log(`[Server] New connection from ${req.socket.remoteAddress}`);
 
         let nodeId: string | null = null;
@@ -245,6 +261,10 @@ export class WebSocketHub {
 
   clearCommandResult(commandId: string): void {
     this.commandResults.delete(commandId);
+  }
+
+  updateAgentToken(token: string | undefined): void {
+    this.config.authToken = token;
   }
 
   private sendToNode(nodeId: string, message: unknown): void {
