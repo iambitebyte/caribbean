@@ -36,10 +36,12 @@
     "packages/*"
   ],
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "^2.30.0",
     "tsx": "^4.21.0"
   },
   "dependencies": {
-    "@caribbean/server": "workspace:^",
-    "@caribbean/agent": "workspace:^"
+    "@caribbean/agent": "workspace:^",
+    "@caribbean/server": "workspace:^"
   }
 }

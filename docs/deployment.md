@@ -4,6 +4,8 @@
 
 For detailed authentication configuration and security best practices, see the [Authentication Guide](authentication.md).
 
+For npm package publishing guide, see the [npm Publishing Guide](npm-publishing.md).
+
 ---
 
 ## Table of Contents
@@ -16,6 +18,7 @@ For detailed authentication configuration and security best practices, see the [
 - [Kubernetes](#kubernetes)
 - [Systemd Service](#systemd-service)
 - [Nginx Reverse Proxy](#nginx-reverse-proxy)
+- [npm Package Installation](#npm-package-installation)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
 
@@ -1005,6 +1008,118 @@ caribbean-server start
 - [ ] Test database upgrade path from previous version
 - [ ] Test authentication flow (login, token expiration, logout)
 - [ ] Verify 401 errors trigger proper UI feedback
+
+---
+
+## npm Package Installation
+
+You can install Caribbean packages directly from npm without cloning the repository.
+
+### Install from npm
+
+```bash
+# Install server (includes Web UI)
+npm install -g @caribbean/server
+
+# Install agent (on OpenClaw nodes)
+npm install -g @caribbean/agent
+```
+
+### Initialize and Start Server
+
+```bash
+# Initialize configuration
+caribbean-server init
+
+# Start server
+caribbean-server start
+
+# Check status
+caribbean-server status
+```
+
+### Initialize and Start Agent
+
+```bash
+# Initialize agent configuration
+caribbean-agent init --server ws://your-server:8080
+
+# Initialize with authentication token
+caribbean-agent init --server ws://your-server:8080 --token your-secret-token
+
+# Start agent
+caribbean-agent start
+
+# Check status
+caribbean-agent status
+```
+
+### Update Packages
+
+To update to the latest version:
+
+```bash
+# Update server
+npm update -g @caribbean/server
+
+# Update agent
+npm update -g @caribbean/agent
+
+# Or reinstall to get latest version
+npm install -g @caribbean/server@latest
+```
+
+### Uninstall
+
+```bash
+# Uninstall server
+npm uninstall -g @caribbean/server
+
+# Uninstall agent
+npm uninstall -g @caribbean/agent
+
+# Remove configuration directory (optional)
+rm -rf ~/.caribbean
+```
+
+### Available Commands
+
+#### Server Commands
+
+| Command | Description |
+|---------|-------------|
+| `caribbean-server init` | Initialize server configuration |
+| `caribbean-server start` | Start server (daemon mode) |
+| `caribbean-server stop` | Stop server |
+| `caribbean-server restart` | Restart server |
+| `caribbean-server status` | Show server status |
+| `caribbean-server set-auth` | Set authentication credentials |
+
+#### Agent Commands
+
+| Command | Description |
+|---------|-------------|
+| `caribbean-agent init` | Initialize agent configuration |
+| `caribbean-agent start` | Start agent (daemon mode) |
+| `caribbean-agent stop` | Stop agent |
+| `caribbean-agent restart` | Restart agent |
+| `caribbean-agent status` | Show agent status |
+
+### Installation Verification
+
+```bash
+# Check installation
+caribbean-server --version
+caribbean-agent --version
+
+# Test server
+caribbean-server start
+# Open browser to http://localhost:3000
+
+# Test agent
+caribbean-agent start
+# Check server dashboard for connected agent
+```
 
 ## Support
 

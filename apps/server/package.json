@@ -1,10 +1,16 @@
 {
   "name": "@caribbean/server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
     "caribbean-server": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",
@@ -12,7 +18,8 @@
     "start": "node dist/cli.js start",
     "clean": "rm -rf dist",
     "build:web": "cd ../web && pnpm run build && mkdir -p ../server/dist/web && cp -r dist/* ../server/dist/web/",
-    "build:all": "pnpm run build:web && pnpm run build"
+    "build:all": "pnpm run build:web && pnpm run build",
+    "prepublishOnly": "pnpm run build:all"
   },
   "dependencies": {
     "@caribbean/protocol": "workspace:*",

@@ -1,10 +1,11 @@
 # Caribbean
 
-
 > OpenClaw 集群管理服务 - 实时监控、统一管理、智能调度
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![npm version](https://badge.fury.io/js/@caribbean/server.svg)](https://www.npmjs.com/package/@caribbean/server)
+[![npm downloads](https://img.shields.io/npm/dm/@caribbean/server.svg)](https://www.npmjs.com/package/@caribbean/server)
 
 ## 简介
 
@@ -12,12 +13,13 @@ Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集
 
 ### 核心特性
 
-- 轻量级 Agent，单进程运行，资源占用极低
+- 潜量级 Agent，单进程运行，资源占用极低
 - WebSocket 实时双向通信，支持状态上报和远程指令
 - React + Vite 现代化 Web 仪表盘
 - OpenClaw Gateway 状态监控与智能诊断
 - 一键自动修复常见 OpenClaw 配置问题
 - Token 认证（Agent）+ 用户名密码登录（Web UI）
+- npm 包发布，支持 `npm install -g` 快速安装
 
 ## 架构
 
@@ -44,42 +46,67 @@ Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集
 
 ## 快速开始
 
-### 前置要求
-
-- Node.js 18+
-- pnpm
-
-### 一键启动
+### npm 安装（推荐）
 
 ```bash
+# 安装服务端（包含 Web UI）
+npm install -g @caribbean/server
+
+# 安装 Agent（在 OpenClaw 节点上）
+npm install -g @caribbean/agent
+```
+
+### 从源码安装
+
+```bash
+# 一键启动
 pnpm install
 ./start.sh
+
+# 手动启动
+pnpm build
+pnpm init
+caribbean-server start
 ```
 
-### 手动启动
+### 启动服务端
 
 ```bash
-# 构建
-cd apps/server && pnpm run build:all
-
 # 初始化配置
-pnpm init
+caribbean-server init
 
-# 启动
-npm start
+# 启动服务
+caribbean-server start
+
+# 检查状态
+caribbean-server status
+
+# 查看日志
+caribbean-server logs
 ```
 
-启动后访问：
-- **Web UI**：http://localhost:3000
-- **WebSocket**：ws://localhost:8080
+访问 Web UI：http://localhost:3000
+WebSocket 地址：ws://localhost:8080
 
-### 部署 Agent
+### 启动 Agent
 
 在 OpenClaw 节点上：
 
 ```bash
+# 初始化配置
 caribbean-agent init --server ws://your-server:8080
+
+# 带认证令牌初始化
+caribbean-agent init --server ws://your-server:8080 --token your-secret-token
+
+# 启动 Agent
 caribbean-agent start
+
+# 检查状态
+caribbean-agent status
+
+# 查看日志
+caribbean-agent logs
 ```
 
 ## 文档
@@ -90,7 +117,8 @@ caribbean-agent start
 |------|------|
 | [架构设计](docs/architecture.md) | 技术栈选型、项目结构、架构详解 |
 | [开发指南](docs/development.md) | 本地开发环境搭建、构建与测试 |
-| [部署指南](docs/deployment.md) | Docker、Kubernetes、Systemd 部署 |
+| [部署指南](docs/deployment.md) | Docker、Kubernetes、Systemd、npm 包安装 |
+| [npm 发布指南](docs/npm-publishing.md) | Changesets 版本管理、多包发布流程 |
 | [配置说明](docs/configuration.md) | Agent / Server 配置文件详解 |
 | [认证指南](docs/authentication.md) | Token 认证、JWT、安全最佳实践 |
 | [通信协议](docs/protocol.md) | WebSocket 协议、消息格式、事件定义 |
