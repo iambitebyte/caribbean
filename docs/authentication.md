@@ -53,7 +53,21 @@ caribbean-agent init --token your-secret-token-here
 
 ## Web UI Authentication (Username/Password + JWT)
 
-### Enable Authentication
+### Method 1: Using Web UI Settings (Recommended)
+
+You can manage authentication settings directly from the Web UI:
+
+1. Access the dashboard at `http://localhost:3000`
+2. Click the **Settings** (gear icon) button in the top-right corner
+3. Configure authentication settings:
+   - Toggle **"Enable Web Login Authentication"** to enable/disable login
+   - Enter **Username** and **Password** (required when enabling auth)
+   - Configure **Agent Token** for agent connections
+   - Click **Save** to apply changes
+4. Settings take effect immediately without server restart
+5. After enabling authentication, you'll be logged out and need to login again
+
+### Method 2: Using CLI Commands
 
 Use the `set-auth` command to enable Web UI authentication:
 
@@ -66,6 +80,13 @@ caribbean-server restart
 ```
 
 ### Disable Authentication
+
+#### From Web UI
+1. Go to Settings page
+2. Toggle off "Enable Web Login Authentication"
+3. Click Save
+
+#### From CLI
 
 To disable authentication (useful for internal networks):
 
@@ -156,6 +177,82 @@ The authentication settings are stored in `~/.caribbean/server.json`:
 ---
 
 ## API Reference
+
+### Authentication Settings Endpoint
+
+#### Get Settings
+
+**GET** `/api/settings`
+
+Retrieves current authentication settings.
+
+**Authentication**: Required if Web UI auth is enabled
+
+**Success Response (200 OK):**
+```json
+{
+  "auth": {
+    "enabled": true,
+    "username": "admin",
+    "agentTokenSet": true
+  }
+}
+```
+
+#### Update Authentication Settings
+
+**POST** `/api/settings/auth`
+
+Updates authentication configuration. Changes take effect immediately without server restart.
+
+**Authentication**: Required if Web UI auth is enabled
+
+**Request Body:**
+```json
+{
+  "enabled": true,
+  "username": "admin",
+  "password": "new-password",
+  "agentToken": "optional-agent-token"
+}
+```
+
+**Request Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `enabled` | boolean | No | Enable or disable Web UI authentication |
+| `username` | string | When `enabled=true` | Username for Web UI login |
+| `password` | string | When `enabled=true` | Password for Web UI login |
+| `agentToken` | string | No | Agent authentication token (empty string to disable) |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Note:** When authentication is enabled or credentials are changed, a new JWT token is returned. The frontend automatically stores this token for continued access.
+
+**Error Responses:**
+
+- **400 Bad Request**: Missing required fields
+  ```json
+  {
+    "error": "Username and password are required to enable auth"
+  }
+  ```
+
+- **401 Unauthorized**: Not logged in (if auth is enabled)
+
+- **500 Internal Server Error**: Failed to update settings
+  ```json
+  {
+    "error": "Failed to update settings"
+  }
+  ```
 
 ### Login Endpoint
 
@@ -310,6 +407,34 @@ openssl rand -base64 32
 
 ---
 
+## Hot Reload
+
+Caribbean supports hot reloading of authentication settings. When you update settings via the Web UI, changes take effect immediately without requiring a server restart.
+
+### What Gets Hot Reloaded
+
+1. **Web UI Authentication** - Enable/disable, username, password
+2. **Agent Authentication** - Token validation
+3. **JWT Secret** - When credentials change, all existing tokens are invalidated
+
+### Behavior
+
+- **Enabling authentication**: All existing sessions are invalidated, users must login again
+- **Disabling authentication**: Current users remain logged in, but new users can access without login
+- **Changing credentials**: All JWT tokens are invalidated, requiring re-login
+- **Changing agent token**: New agents must use the updated token; existing connections remain valid
+
+### CLI vs Web UI
+
+| Feature | CLI | Web UI |
+|---------|-----|---------|
+| Requires restart | ✅ Yes | ❌ No |
+| Invalidate sessions | ❌ No | ✅ Yes |
+| Return new token | ❌ No | ✅ Yes |
+| Convenience | 🔧 Advanced | 🖱️ User-friendly |
+
+---
+
 ## Advanced Configuration
 
 ### Custom JWT Secret
@@ -455,10 +580,100 @@ response = requests.get('http://localhost:3000/api/nodes', headers=headers)
 | Feature | Agent Auth | Web UI Auth |
 |---------|-----------|-------------|
 | Type | Token | Username/Password + JWT |
-| Enabled By | `--token` flag | `set-auth` command |
+| Enabled By | `--token` flag | Web UI Settings or `set-auth` command |
 | Storage | Config file | localStorage |
 | Validation | On connection | On API request |
 | Expiration | Never | 7 days |
 | Recommended for | Internal networks | Public access |
 
 For production deployments, it's recommended to enable both authentication methods for maximum security.
+
+---
+
+## Web UI Settings Page
+
+### Access
+
+The Settings page can be accessed by clicking the gear icon (⚙️) in the top-right corner of the dashboard, or by navigating to `http://localhost:3000/settings`.
+
+### Features
+
+#### Authentication Section
+
+1. **Web Login Authentication Toggle**
+   - Enable or disable username/password authentication for the Web UI
+   - When enabled, all users must login to access the dashboard
+   - When disabled, the dashboard is publicly accessible
+
+2. **Username**
+   - Display name for the admin user
+   - Required when authentication is enabled
+
+3. **Password**
+   - Secure password for login
+   - Shows/hide toggle for convenience
+   - Confirmation field to prevent typos
+
+#### Agent Authentication Section
+
+1. **Agent Token**
+   - Token required for agents to connect to the server
+   - Can be set, changed, or cleared (leave empty to disable)
+   - Password field with show/hide toggle
+   - Shows if a token is already set (without revealing the value)
+
+### Workflow
+
+#### Enable Authentication
+
+1. Navigate to Settings page
+2. Toggle "Enable Web Login Authentication" to ON
+3. Enter username and password
+4. Confirm password
+5. Click Save
+6. You'll be automatically logged out
+7. Login with your new credentials
+
+#### Disable Authentication
+
+1. Navigate to Settings page
+2. Toggle "Enable Web Login Authentication" to OFF
+3. Click Save
+4. Dashboard becomes immediately accessible without login
+
+#### Update Credentials
+
+1. Navigate to Settings page
+2. Update username and/or password
+3. Confirm new password
+4. Click Save
+5. You'll receive a new token automatically
+6. Continue using the dashboard seamlessly
+
+#### Configure Agent Token
+
+1. Navigate to Settings page
+2. Enter token in the "Agent Token" field
+3. Click Save
+4. New agents must use this token to connect
+5. To disable agent auth, clear the token field and save
+
+### Error Messages
+
+| Message | Cause | Solution |
+|---------|--------|----------|
+| "Username is required" | Username field is empty | Enter a username |
+| "Password is required" | Password field is empty | Enter a password |
+| "Passwords do not match" | Confirmation doesn't match | Re-enter password in both fields |
+| "Settings saved successfully" | Operation succeeded | No action needed |
+| "Failed to save settings" | Server error | Check server logs and try again |
+| "Failed to load settings" | Cannot retrieve settings | Check server is running and network connection |
+
+### Security Notes
+
+- Passwords are never returned from the server
+- Agent tokens are masked in the UI (only shows if set)
+- All changes require a save action
+- Authentication changes invalidate existing sessions
+- Settings page is protected by current authentication (if enabled)
+

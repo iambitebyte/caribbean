@@ -573,6 +573,120 @@ for (let i = 0; i < maxRetries; i++) {
 
 ---
 
+### Get Authentication Status
+
+Check if Web UI authentication is enabled.
+
+**Authentication**: Not required
+
+**Request:**
+
+```http
+GET /api/auth/status
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "enabled": true
+}
+```
+
+---
+
+### Get Settings
+
+Retrieve current authentication and agent settings.
+
+**Authentication**: Required (if Web UI auth is enabled)
+
+**Request:**
+
+```http
+GET /api/settings
+Authorization: Bearer <your-jwt-token>
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "auth": {
+    "enabled": true,
+    "username": "admin",
+    "agentTokenSet": true
+  }
+}
+```
+
+---
+
+### Update Authentication Settings
+
+Update authentication configuration. Changes take effect immediately without server restart.
+
+**Authentication**: Required (if Web UI auth is enabled)
+
+**Request:**
+
+```http
+POST /api/settings/auth
+Authorization: Bearer <your-jwt-token>
+Content-Type: application/json
+```
+
+**Body:**
+
+```json
+{
+  "enabled": true,
+  "username": "admin",
+  "password": "new-password",
+  "agentToken": "optional-agent-token"
+}
+```
+
+**Request Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `enabled` | boolean | No | Enable or disable Web UI authentication |
+| `username` | string | When `enabled=true` | Username for Web UI login |
+| `password` | string | When `enabled=true` | Password for Web UI login |
+| `agentToken` | string | No | Agent authentication token (empty string to disable) |
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Note:** When authentication is enabled or credentials are changed, a new JWT token is returned. The frontend automatically stores this token for continued access.
+
+**Error Responses:**
+
+- **400 Bad Request**: Missing required fields
+  ```json
+  {
+    "error": "Username and password are required to enable auth"
+  }
+  ```
+
+- **401 Unauthorized**: Not logged in (if auth is enabled)
+
+- **500 Internal Server Error**: Failed to update settings
+  ```json
+  {
+    "error": "Failed to update settings"
+  }
+  ```
+
+---
+
 ### Get Cluster Statistics
 
 Retrieve overall cluster statistics.

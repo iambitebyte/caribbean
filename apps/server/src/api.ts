@@ -1,9 +1,12 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { homedir } from 'os';
 import type { NodeInfo } from '@caribbean/shared';
 import { verifyToken, generateToken } from './auth.js';
+
+const CONFIG_PATH = join(homedir(), '.caribbean', 'server.json');
 
 export interface ApiServerConfig {
   port: number;
@@ -11,6 +14,7 @@ export interface ApiServerConfig {
   webDistPath?: string;
   auth?: {
     enabled: boolean;
+    tokens: string[];
     user?: {
       username: string;
       password: string;
@@ -31,6 +35,7 @@ export class ApiServer {
   private updateNodeName?: (nodeId: string, name: string) => Promise<void>;
   private deleteNode?: (nodeId: string) => Promise<void>;
   private authEnabled: boolean;
+  private updateAgentToken?: (token: string | undefined) => void;
 
   constructor(
     config: ApiServerConfig,
@@ -41,7 +46,8 @@ export class ApiServer {
     clearCommandResult?: (commandId: string) => void,
     getDatabaseNodes?: () => Promise<NodeInfo[]>,
     updateNodeName?: (nodeId: string, name: string) => Promise<void>,
-    deleteNode?: (nodeId: string) => Promise<void>
+    deleteNode?: (nodeId: string) => Promise<void>,
+    updateAgentToken?: (token: string | undefined) => void
   ) {
     this.config = config;
     this.getNodeInfo = getNodeInfo;
@@ -52,6 +58,7 @@ export class ApiServer {
     this.getDatabaseNodes = getDatabaseNodes;
     this.updateNodeName = updateNodeName;
     this.deleteNode = deleteNode;
+    this.updateAgentToken = updateAgentToken;
     this.authEnabled = !!config.auth?.enabled && !!config.auth?.user;
     this.fastify = Fastify({ logger: false });
     this.fastify.register(cors, {
@@ -64,33 +71,34 @@ export class ApiServer {
   }
 
   private setupAuthMiddleware(): void {
-    if (!this.authEnabled) return;
-
     this.fastify.addHook('onRequest', async (request: any, reply: any) => {
       const path = request.routerPath;
 
-      if (path === '/api/login' || path === '/api/health' || path?.startsWith('/api/auth/')) {
+      if (path === '/api/login' || path === '/api/health' ||
+          path?.startsWith('/api/auth/') || path?.startsWith('/api/settings/')) {
         return;
       }
 
-      if (path?.startsWith('/api/')) {
-        const authHeader = request.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-          reply.code(401).send({ error: 'Unauthorized' });
-          return;
-        }
-
-        const token = authHeader.substring(7);
-        const jwtSecret = this.config.auth?.jwtSecret;
-        const payload = verifyToken(token, jwtSecret);
-
-        if (!payload) {
-          reply.code(401).send({ error: 'Invalid or expired token' });
-          return;
-        }
-
-        request.user = payload;
+      if (!this.authEnabled || !path?.startsWith('/api/')) {
+        return;
       }
+
+      const authHeader = request.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        reply.code(401).send({ error: 'Unauthorized' });
+        return;
+      }
+
+      const token = authHeader.substring(7);
+      const jwtSecret = this.config.auth?.jwtSecret;
+      const payload = verifyToken(token, jwtSecret);
+
+      if (!payload) {
+        reply.code(401).send({ error: 'Invalid or expired token' });
+        return;
+      }
+
+      request.user = payload;
     });
   }
 
@@ -101,6 +109,62 @@ export class ApiServer {
 
     this.fastify.get('/api/auth/status', async () => {
       return { enabled: this.authEnabled };
+    });
+
+    this.fastify.get('/api/settings', async () => {
+      return {
+        auth: {
+          enabled: this.authEnabled,
+          username: this.config.auth?.user?.username,
+          agentTokenSet: !!(this.config.auth?.tokens && this.config.auth.tokens.length > 0)
+        }
+      };
+    });
+
+    this.fastify.post('/api/settings/auth', async (request: any, reply: any) => {
+      const { enabled, username, password, agentToken } = request.body;
+
+      try {
+        const configContent = readFileSync(CONFIG_PATH, 'utf-8');
+        const config = JSON.parse(configContent);
+
+        if (enabled !== undefined) {
+          if (enabled) {
+            if (!username || !password) {
+              reply.code(400).send({ error: 'Username and password are required to enable auth' });
+              return;
+            }
+            config.auth.enabled = true;
+            config.auth.user = { username, password };
+            config.auth.jwtSecret = 'caribbean-jwt-secret-' + Date.now();
+          } else {
+            config.auth.enabled = false;
+            config.auth.user = undefined;
+            config.auth.jwtSecret = undefined;
+          }
+        }
+
+        if (agentToken !== undefined) {
+          if (agentToken && agentToken.trim() !== '') {
+            config.auth.tokens = [agentToken.trim()];
+          } else {
+            config.auth.tokens = [];
+          }
+        }
+
+        writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+
+        this.updateAuthConfig(config.auth);
+
+        const result: { success: boolean; token?: string } = { success: true };
+        if (config.auth.enabled && config.auth.user && config.auth.jwtSecret) {
+          result.token = generateToken({ username: config.auth.user.username }, config.auth.jwtSecret);
+        }
+        return result;
+      } catch (error) {
+        console.error('Failed to update settings:', error);
+        reply.code(500).send({ error: 'Failed to update settings' });
+      }
     });
 
     this.fastify.post('/api/login', async (request: any, reply: any) => {
@@ -340,5 +404,27 @@ export class ApiServer {
 
   async stop(): Promise<void> {
     await this.fastify.close();
+  }
+
+  private readConfig() {
+    try {
+      const configContent = readFileSync(CONFIG_PATH, 'utf-8');
+      return JSON.parse(configContent);
+    } catch (error) {
+      console.error('Failed to read config:', error);
+      return null;
+    }
+  }
+
+  updateAuthConfig(authConfig: any): void {
+    this.config.auth = authConfig;
+    this.authEnabled = !!authConfig?.enabled && !!authConfig?.user;
+
+    if (this.updateAgentToken) {
+      const agentToken = (authConfig?.tokens && authConfig.tokens.length > 0)
+        ? authConfig.tokens[0]
+        : undefined;
+      this.updateAgentToken(agentToken);
+    }
   }
 }

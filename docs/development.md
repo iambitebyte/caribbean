@@ -46,8 +46,16 @@ caribbean/
 │       └── src/
 │           ├── components/          # UI components
 │           │   ├── ui/             # shadcn/ui components
-│           │   └── NodeCard.tsx    # Node card
+│           │   ├── NodeCard.tsx    # Node card component
+│           │   ├── Settings.tsx    # Settings page (new)
+│           │   ├── Login.tsx        # Login page
+│           │   └── ...              # Other components
 │           ├── lib/                # Utility functions
+│           │   ├── api.ts          # API client
+│           │   └── auth.ts         # Token management
+│           ├── i18n/               # Internationalization
+│           │   ├── zh.json         # Chinese translations
+│           │   └── en.json         # English translations
 │           ├── types/              # Type definitions
 │           ├── App.tsx             # Main app
 │           └── main.tsx            # Entry point
@@ -131,6 +139,80 @@ pnpm test:e2e
 # Lint
 pnpm lint
 ```
+
+---
+
+## Component Development
+
+### Settings Page
+
+The Settings page (`apps/web/src/components/Settings.tsx`) manages authentication configuration:
+
+#### Key Features
+
+1. **State Management**
+   - Local settings state for form inputs
+   - Current settings from server API
+   - Loading/saving/error states
+
+2. **Form Validation**
+   - Username required when auth enabled
+   - Password required when auth enabled
+   - Password confirmation match validation
+   - Real-time validation feedback
+
+3. **API Integration**
+   - `GET /api/settings` - Load current settings
+   - `POST /api/settings/auth` - Update settings
+   - Automatic token renewal on credential changes
+
+4. **UI Components**
+   - Toggle switches for enable/disable
+   - Password fields with show/hide toggle
+   - Success/error message banners
+   - Language switcher in header
+
+#### Adding New Settings
+
+To add a new setting to the page:
+
+1. Add fields to the `settings` state
+2. Add corresponding UI controls in the JSX
+3. Add validation in `handleSave` function
+4. Update the API call to include new fields
+5. Add i18n translations in `zh.json` and `en.json`
+6. Update backend API endpoint if needed
+
+#### Example: Adding a New Setting Field
+
+```tsx
+// 1. Add to state
+const [settings, setSettings] = useState({
+  auth: { /* ... */ },
+  newSetting: ''  // Add new field
+})
+
+// 2. Add UI control
+<div>
+  <label className="block text-sm font-medium mb-2">
+    {t('settings.newSetting')}
+  </label>
+  <input
+    type="text"
+    value={settings.newSetting}
+    onChange={(e) => setSettings(prev => ({ ...prev, newSetting: e.target.value }))}
+    className="w-full px-3 py-2 border rounded-md"
+  />
+</div>
+
+// 3. Add to save function
+await updateAuthSettings({
+  // ...existing fields
+  newSetting: settings.newSetting
+})
+```
+
+---
 
 ---
 

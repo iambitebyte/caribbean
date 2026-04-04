@@ -99,7 +99,8 @@ export class CaribbeanServer {
             await this.database.deleteNode(nodeId);
             this.nodeManager.removeNode(nodeId);
           }
-        }
+        },
+        (token: string | undefined) => this.websocketHub.updateAgentToken(token)
       );
     }
   }

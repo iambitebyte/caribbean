@@ -14,7 +14,8 @@ import { NodeCard } from "@/components/NodeCard"
 import { ConfigDialog } from "@/components/ConfigDialog"
 import { LogsDialog } from "@/components/LogsDialog"
 import { LogoDialog } from "@/components/LogoDialog"
-import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square, LayoutList, LayoutGrid } from "lucide-react"
+import Settings from "@/components/Settings"
+import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square, LayoutList, LayoutGrid, Settings as SettingsIcon } from "lucide-react"
 import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName, sendNodeCommand, deleteNode, getNodeConfig, getNodeLogs } from "@/lib/api"
 import { tokenManager } from "@/lib/auth"
 import { cn } from "@/lib/utils"
@@ -337,6 +338,14 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                 <Button onClick={loadData} variant="outline" size="sm">
                   <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                   {t('header.refresh')}
+                </Button>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button onClick={() => navigate('/settings')} variant="outline" size="sm">
+                  <SettingsIcon className="h-4 w-4" />
                 </Button>
               </motion.div>
               {authEnabled && (
@@ -807,6 +816,14 @@ export default function App() {
           element={
             <ProtectedRoute authEnabled={authEnabled}>
               <AppContent authEnabled={authEnabled} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute authEnabled={authEnabled}>
+              <Settings />
             </ProtectedRoute>
           }
         />
