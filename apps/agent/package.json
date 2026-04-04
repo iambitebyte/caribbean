@@ -1,16 +1,23 @@
 {
   "name": "@caribbean/agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
     "caribbean-agent": "./dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "@caribbean/protocol": "workspace:*",

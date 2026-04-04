@@ -1,13 +1,20 @@
 {
   "name": "@caribbean/shared",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
