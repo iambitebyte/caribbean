@@ -1,6 +1,6 @@
 import type { NodeStatus } from '@caribbean/shared';
 
-export type MessageType = 'heartbeat' | 'command' | 'connect' | 'disconnect' | 'ack' | 'connected';
+export type MessageType = 'heartbeat' | 'command' | 'connect' | 'disconnect' | 'ack' | 'connected' | 'result';
 
 export interface BaseMessage {
   type: MessageType;
@@ -56,4 +56,12 @@ export interface AckMessage extends BaseMessage {
   error?: string;
 }
 
-export type Message = HeartbeatMessage | CommandMessage | ConnectMessage | ConnectedMessage | DisconnectMessage | AckMessage;
+export interface ResultMessage extends BaseMessage {
+  type: 'result';
+  id: string;
+  success: boolean;
+  error?: string;
+  data?: unknown;
+}
+
+export type Message = HeartbeatMessage | CommandMessage | ConnectMessage | ConnectedMessage | DisconnectMessage | AckMessage | ResultMessage;

@@ -3,6 +3,8 @@ import { execSync } from 'child_process';
 import type { Message } from '@caribbean/protocol';
 import type { NodeStatus } from '@caribbean/shared';
 import os from 'os';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 export interface WebSocketClientConfig {
   url: string;
@@ -297,50 +299,66 @@ export class WebSocketClient {
     this.debugLog('Command timestamp:', message.timestamp);
 
     try {
-      await this.executeCommand(message.action, message.params);
+      const result = await this.executeCommand(message.action, message.params);
 
-      this.debugLog('Command executed successfully, sending ACK');
-      const ackMessage = {
-        type: 'ack',
+      this.debugLog('Command executed successfully, sending result');
+      const resultMessage = {
+        type: 'result',
         timestamp: new Date().toISOString(),
         id: message.id,
-        success: true
+        success: true,
+        data: result
       };
-      this.send(ackMessage);
+      this.send(resultMessage);
     } catch (error) {
-      this.debugLog('Command execution failed, sending error ACK');
+      this.debugLog('Command execution failed, sending error result');
       this.debugLog('Execution error:', error);
-      const ackMessage = {
-        type: 'ack',
+      const resultMessage = {
+        type: 'result',
         timestamp: new Date().toISOString(),
         id: message.id,
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
-      this.send(ackMessage);
+      this.send(resultMessage);
     }
   }
 
-  private async executeCommand(action: string, params: Record<string, unknown>): Promise<void> {
+  private async executeCommand(action: string, params: Record<string, unknown>): Promise<unknown> {
     switch (action) {
       case 'restart_agent':
         console.log('[Agent] Restarting agent:', params);
-        break;
+        return { message: 'Restart command received' };
       case 'update_config':
         console.log('[Agent] Updating config:', params);
-        break;
+        return { message: 'Update config command received' };
       case 'openclaw_gateway_start':
         console.log('[Agent] Starting OpenClaw gateway...');
         execSync('openclaw gateway start', { timeout: 30000 });
         console.log('[Agent] OpenClaw gateway started successfully');
         this.sendHeartbeat();
-        break;
+        return { message: 'Gateway started successfully' };
       case 'openclaw_gateway_stop':
         console.log('[Agent] Stopping OpenClaw gateway...');
         execSync('openclaw gateway stop', { timeout: 30000 });
         console.log('[Agent] OpenClaw gateway stopped successfully');
         this.sendHeartbeat();
-        break;
+        return { message: 'Gateway stopped successfully' };
+      case 'read_config':
+        console.log('[Agent] Reading openclaw.json config...');
+        const configPath = join(process.env.HOME || '', '.openclaw', 'openclaw.json');
+        if (!existsSync(configPath)) {
+          throw new Error('Config file not found');
+        }
+        const configContent = readFileSync(configPath, 'utf-8');
+        const config = JSON.parse(configContent);
+        console.log('[Agent] Config read successfully');
+        return { config };
+      case 'read_logs':
+        console.log('[Agent] Reading openclaw logs...');
+        const logs = execSync('openclaw logs | tail -n 20', { encoding: 'utf-8', timeout: 5000 });
+        console.log('[Agent] Logs read successfully');
+        return { logs: logs.trim() };
       default:
         throw new Error(`Unknown command: ${action}`);
     }

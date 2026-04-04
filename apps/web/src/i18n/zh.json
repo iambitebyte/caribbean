@@ -35,7 +35,9 @@
     "justNow": "刚刚",
     "minutesAgo": "分钟前",
     "hoursAgo": "小时前",
-    "daysAgo": "天前"
+    "daysAgo": "天前",
+    "configuration": "配置",
+    "logs": "日志"
   },
   "batchActions": {
     "selected": "已选择 {{count}} 个实例",

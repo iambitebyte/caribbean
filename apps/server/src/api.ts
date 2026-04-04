@@ -25,6 +25,8 @@ export class ApiServer {
   private getNodeInfo: (nodeId: string) => NodeInfo | undefined;
   private getAllNodes: () => NodeInfo[];
   private sendCommand: (nodeId: string, action: string, params: Record<string, unknown>) => string;
+  private getCommandResult?: (commandId: string) => { success: boolean; error?: string; data?: unknown; timestamp: string } | undefined;
+  private clearCommandResult?: (commandId: string) => void;
   private getDatabaseNodes?: () => Promise<NodeInfo[]>;
   private updateNodeName?: (nodeId: string, name: string) => Promise<void>;
   private deleteNode?: (nodeId: string) => Promise<void>;
@@ -35,6 +37,8 @@ export class ApiServer {
     getNodeInfo: (nodeId: string) => NodeInfo | undefined,
     getAllNodes: () => NodeInfo[],
     sendCommand: (nodeId: string, action: string, params: Record<string, unknown>) => string,
+    getCommandResult?: (commandId: string) => { success: boolean; error?: string; data?: unknown; timestamp: string } | undefined,
+    clearCommandResult?: (commandId: string) => void,
     getDatabaseNodes?: () => Promise<NodeInfo[]>,
     updateNodeName?: (nodeId: string, name: string) => Promise<void>,
     deleteNode?: (nodeId: string) => Promise<void>
@@ -43,6 +47,8 @@ export class ApiServer {
     this.getNodeInfo = getNodeInfo;
     this.getAllNodes = getAllNodes;
     this.sendCommand = sendCommand;
+    this.getCommandResult = getCommandResult;
+    this.clearCommandResult = clearCommandResult;
     this.getDatabaseNodes = getDatabaseNodes;
     this.updateNodeName = updateNodeName;
     this.deleteNode = deleteNode;
@@ -223,6 +229,28 @@ export class ApiServer {
           error: error instanceof Error ? error.message : 'Unknown error'
         });
       }
+    });
+
+    this.fastify.get('/api/commands/:id/result', async (request: any, reply: any) => {
+      const { id } = request.params;
+
+      if (!this.getCommandResult) {
+        reply.code(501).send({ error: 'Command result retrieval not available' });
+        return;
+      }
+
+      const result = this.getCommandResult(id);
+
+      if (!result) {
+        reply.code(404).send({ error: 'Command result not found' });
+        return;
+      }
+
+      if (this.clearCommandResult) {
+        this.clearCommandResult(id);
+      }
+
+      return result;
     });
 
     this.fastify.delete('/api/nodes/:id', async (request: any, reply: any) => {

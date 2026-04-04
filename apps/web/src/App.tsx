@@ -10,8 +10,11 @@ import { Checkbox } from "@/components/ui/Checkbox"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/DropdownMenu"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { EditNameDialog } from "@/components/EditNameDialog"
-import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square } from "lucide-react"
-import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName, sendNodeCommand, deleteNode } from "@/lib/api"
+import { NodeCard } from "@/components/NodeCard"
+import { ConfigDialog } from "@/components/ConfigDialog"
+import { LogsDialog } from "@/components/LogsDialog"
+import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square, LayoutList, LayoutGrid } from "lucide-react"
+import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName, sendNodeCommand, deleteNode, getNodeConfig, getNodeLogs } from "@/lib/api"
 import { tokenManager } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
@@ -67,6 +70,17 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set())
   const [executing, setExecuting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'card'>('list')
+  const [showConfigDialog, setShowConfigDialog] = useState(false)
+  const [configNode, setConfigNode] = useState<NodeInfo | null>(null)
+  const [configData, setConfigData] = useState<unknown>(null)
+  const [configLoading, setConfigLoading] = useState(false)
+  const [configError, setConfigError] = useState<string | null>(null)
+  const [showLogsDialog, setShowLogsDialog] = useState(false)
+  const [logsNode, setLogsNode] = useState<NodeInfo | null>(null)
+  const [logsData, setLogsData] = useState<string>('')
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [logsError, setLogsError] = useState<string | null>(null)
 
   const getGatewayStatus = useCallback((node: NodeInfo): string => {
     if (!node.connected || !node.status?.openclawGateway) return 'unknown'
@@ -227,6 +241,40 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
     setTimeout(() => loadData(), 500)
   }
 
+  const handleViewConfig = async (node: NodeInfo) => {
+    setConfigNode(node)
+    setShowConfigDialog(true)
+    setConfigLoading(true)
+    setConfigError(null)
+    setConfigData(null)
+
+    try {
+      const config = await getNodeConfig(node.id)
+      setConfigData(config)
+    } catch (error) {
+      setConfigError(error instanceof Error ? error.message : 'Failed to load config')
+    } finally {
+      setConfigLoading(false)
+    }
+  }
+
+  const handleViewLogs = async (node: NodeInfo) => {
+    setLogsNode(node)
+    setShowLogsDialog(true)
+    setLogsLoading(true)
+    setLogsError(null)
+    setLogsData('')
+
+    try {
+      const logs = await getNodeLogs(node.id)
+      setLogsData(logs)
+    } catch (error) {
+      setLogsError(error instanceof Error ? error.message : 'Failed to load logs')
+    } finally {
+      setLogsLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadData()
     const interval = setInterval(loadData, 10000) // Refresh every 10 seconds
@@ -322,6 +370,24 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-xl font-semibold">{t('nodes.title')}</h2>
             <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 bg-muted rounded-md p-1">
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => setViewMode('list')}
+                >
+                  <LayoutList className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'card' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => setViewMode('card')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </div>
               {selectedNodes.size > 0 && (
                 <span className="text-sm text-muted-foreground">
                   {t('batchActions.selected', { count: selectedNodes.size })}
@@ -445,159 +511,195 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="rounded-none">
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-10">
-                          <Checkbox
-                            checked={nodes.length > 0 && selectedNodes.size === nodes.length}
-                            onCheckedChange={toggleAll}
-                          />
-                        </TableHead>
-                        <TableHead className="w-16">{t('nodes.status')}</TableHead>
-                        <TableHead>{t('nodes.instanceName')}</TableHead>
-                        <TableHead>{t('nodes.id')}</TableHead>
-                        <TableHead>{t('nodes.clientIp')}</TableHead>
-                        <TableHead>{t('nodes.connectionStatus')}</TableHead>
-                        <TableHead>Gateway</TableHead>
-                        <TableHead>{t('nodes.lastSeen')}</TableHead>
-                        <TableHead>{t('nodes.cpu')}</TableHead>
-                        <TableHead>{t('nodes.memory')}</TableHead>
-                        <TableHead>{t('nodes.uptime')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {nodes.map((node) => (
-                        <TableRow
-                          key={node.id}
-                          className={cn(
-                            node.connected ? "" : "bg-muted/30",
-                            selectedNodes.has(node.id) && "bg-blue-50/50 dark:bg-blue-900/10"
-                          )}
-                        >
-                          <TableCell>
+              {viewMode === 'list' ? (
+                <Card className="rounded-none">
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10">
                             <Checkbox
-                              checked={selectedNodes.has(node.id)}
-                              onCheckedChange={() => toggleNode(node.id)}
+                              checked={nodes.length > 0 && selectedNodes.size === nodes.length}
+                              onCheckedChange={toggleAll}
                             />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-center">
-                              {node.connected ? (
-                                <motion.div
-                                  animate={{
-                                    scale: [1, 1.1, 1],
-                                    rotate: [0, 10, -10, 0]
-                                  }}
-                                  transition={{
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    ease: "easeInOut"
-                                  }}
-                                >
+                          </TableHead>
+                          <TableHead className="w-16">{t('nodes.status')}</TableHead>
+                          <TableHead>{t('nodes.instanceName')}</TableHead>
+                          <TableHead>{t('nodes.id')}</TableHead>
+                          <TableHead>{t('nodes.clientIp')}</TableHead>
+                          <TableHead>{t('nodes.connectionStatus')}</TableHead>
+                          <TableHead>Gateway</TableHead>
+                          <TableHead>{t('nodes.lastSeen')}</TableHead>
+                          <TableHead>{t('nodes.cpu')}</TableHead>
+                          <TableHead>{t('nodes.memory')}</TableHead>
+                          <TableHead>{t('nodes.uptime')}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {nodes.map((node) => (
+                          <TableRow
+                            key={node.id}
+                            className={cn(
+                              node.connected ? "" : "bg-muted/30",
+                              selectedNodes.has(node.id) && "bg-blue-50/50 dark:bg-blue-900/10"
+                            )}
+                          >
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedNodes.has(node.id)}
+                                onCheckedChange={() => toggleNode(node.id)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-center">
+                                {node.connected ? (
+                                  <motion.div
+                                    animate={{
+                                      scale: [1, 1.1, 1],
+                                      rotate: [0, 10, -10, 0]
+                                    }}
+                                    transition={{
+                                      duration: 2,
+                                      repeat: Infinity,
+                                      ease: "easeInOut"
+                                    }}
+                                  >
+                                    <img 
+                                      src="/img/openclaw-logo.svg" 
+                                      alt="OpenClaw Logo" 
+                                      className="h-4 w-4"
+                                    />
+                                  </motion.div>
+                                ) : (
                                   <img 
                                     src="/img/openclaw-logo.svg" 
                                     alt="OpenClaw Logo" 
-                                    className="h-4 w-4"
+                                    className="h-4 w-4 opacity-50"
+                                    style={{ filter: 'grayscale(100%)' }}
                                   />
-                                </motion.div>
-                              ) : (
-                                <img 
-                                  src="/img/openclaw-logo.svg" 
-                                  alt="OpenClaw Logo" 
-                                  className="h-4 w-4 opacity-50"
-                                  style={{ filter: 'grayscale(100%)' }}
-                                />
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{node.name || 'unknown'}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 hover:bg-muted/50"
-                                onClick={() => handleEditName(node.id, node.name || 'unknown')}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">{node.id}</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {node.clientIp || '-'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={node.connected ? "success" : "destructive"} className="whitespace-nowrap">
-                              {node.connected ? t('nodes.connected') : t('nodes.disconnected')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {node.connected ? (
-                              node.status?.openclawGateway ? (
-                                <OpenClawGatewayStatusBadge status={node.status.openclawGateway} />
-                              ) : (
-                                <span className="text-muted-foreground text-sm">-</span>
-                              )
-                            ) : (
-                              <Badge variant="secondary" className="whitespace-nowrap">
-                                unknown
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{node.name || 'unknown'}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 hover:bg-muted/50"
+                                  onClick={() => handleEditName(node.id, node.name || 'unknown')}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">{node.id}</TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {node.clientIp || '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={node.connected ? "success" : "destructive"} className="whitespace-nowrap">
+                                {node.connected ? t('nodes.connected') : t('nodes.disconnected')}
                               </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {formatLastSeen(node.lastSeen)}
-                          </TableCell>
-                          <TableCell>
-                            {node.connected && node.status?.cpu ? (
-                              <div className="flex items-center gap-2">
-                                <Cpu className="h-4 w-4 text-muted-foreground" />
-                                <span>{node.status.cpu.percent}%</span>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {node.connected && node.status?.memory ? (
-                              <div className="flex items-center gap-2" title={`${node.status.memory.used}GB / ${node.status.memory.total}GB`}>
-                                <MemoryStick className="h-4 w-4 text-muted-foreground" />
-                                <span>{node.status.memory.percent}%</span>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {node.connected && node.status?.uptime ? (
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                <span>{formatUptime(node.status.uptime)}</span>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+                            </TableCell>
+                            <TableCell>
+                              {node.connected ? (
+                                node.status?.openclawGateway ? (
+                                  <OpenClawGatewayStatusBadge status={node.status.openclawGateway} />
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">-</span>
+                                )
+                              ) : (
+                                <Badge variant="secondary" className="whitespace-nowrap">
+                                  unknown
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {formatLastSeen(node.lastSeen)}
+                            </TableCell>
+                            <TableCell>
+                              {node.connected && node.status?.cpu ? (
+                                <div className="flex items-center gap-2">
+                                  <Cpu className="h-4 w-4 text-muted-foreground" />
+                                  <span>{node.status.cpu.percent}%</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {node.connected && node.status?.memory ? (
+                                <div className="flex items-center gap-2" title={`${node.status.memory.used}GB / ${node.status.memory.total}GB`}>
+                                  <MemoryStick className="h-4 w-4 text-muted-foreground" />
+                                  <span>{node.status.memory.percent}%</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {node.connected && node.status?.uptime ? (
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4 text-muted-foreground" />
+                                  <span>{formatUptime(node.status.uptime)}</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {nodes.map((node) => (
+                    <NodeCard
+                      key={node.id}
+                      node={node}
+                      selected={selectedNodes.has(node.id)}
+                      onToggle={toggleNode}
+                      onViewConfig={handleViewConfig}
+                      onViewLogs={handleViewLogs}
+                      getGatewayStatus={getGatewayStatus}
+                      formatUptime={formatUptime}
+                      formatLastSeen={formatLastSeen}
+                    />
+                  ))}
+                </div>
+              )}
             </motion.div>
            </>
          )}
          
-           <EditNameDialog
-             isOpen={editingNode !== null}
-             onClose={() => setEditingNode(null)}
-             nodeId={editingNode?.id || ''}
-             currentName={editingNode?.name || ''}
-             onSave={handleSaveName}
-           />
+            <EditNameDialog
+              isOpen={editingNode !== null}
+              onClose={() => setEditingNode(null)}
+              nodeId={editingNode?.id || ''}
+              currentName={editingNode?.name || ''}
+              onSave={handleSaveName}
+            />
+
+            <ConfigDialog
+              isOpen={showConfigDialog}
+              onClose={() => setShowConfigDialog(false)}
+              node={configNode}
+              config={configData}
+              loading={configLoading}
+              error={configError}
+            />
+
+            <LogsDialog
+              isOpen={showLogsDialog}
+              onClose={() => setShowLogsDialog(false)}
+              node={logsNode}
+              logs={logsData}
+              loading={logsLoading}
+              error={logsError}
+            />
 
            <AnimatePresence>
              {showDeleteDialog && (

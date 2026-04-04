@@ -76,6 +76,8 @@ export class CaribbeanServer {
         (nodeId) => this.nodeManager.getNode(nodeId),
         () => this.nodeManager.getAllNodes(),
         (nodeId, action, params) => this.websocketHub.sendCommand(nodeId, action, params),
+        (commandId) => this.websocketHub.getCommandResult(commandId),
+        (commandId) => this.websocketHub.clearCommandResult(commandId),
         async () => {
           if (this.database) {
             return await this.database.getAllNodes();

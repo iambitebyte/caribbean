@@ -81,3 +81,66 @@ export async function sendNodeCommand(
   const response = await apiClient.post(`/nodes/${nodeId}/command`, { action, params });
   return response.data;
 }
+
+export async function getCommandResult(
+  commandId: string
+): Promise<{ success: boolean; error?: string; data?: unknown; timestamp: string }> {
+  const response = await apiClient.get(`/commands/${commandId}/result`);
+  return response.data;
+}
+
+export async function getNodeConfig(nodeId: string): Promise<unknown> {
+  const commandResponse = await sendNodeCommand(nodeId, 'read_config', {});
+  
+  const maxRetries = 10;
+  const retryDelay = 500;
+
+  for (let i = 0; i < maxRetries; i++) {
+    await new Promise(resolve => setTimeout(resolve, retryDelay));
+    
+    try {
+      const result = await getCommandResult(commandResponse.commandId);
+      if (result.success && result.data) {
+        return (result.data as { config: unknown }).config;
+      }
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get config');
+      }
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error('Timeout waiting for command result');
+}
+
+export async function getNodeLogs(nodeId: string): Promise<string> {
+  const commandResponse = await sendNodeCommand(nodeId, 'read_logs', {});
+  
+  const maxRetries = 10;
+  const retryDelay = 500;
+
+  for (let i = 0; i < maxRetries; i++) {
+    await new Promise(resolve => setTimeout(resolve, retryDelay));
+    
+    try {
+      const result = await getCommandResult(commandResponse.commandId);
+      if (result.success && result.data) {
+        return (result.data as { logs: string }).logs;
+      }
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get logs');
+      }
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error('Timeout waiting for command result');
+}
