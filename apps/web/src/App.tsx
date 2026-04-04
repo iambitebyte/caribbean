@@ -13,6 +13,7 @@ import { EditNameDialog } from "@/components/EditNameDialog"
 import { NodeCard } from "@/components/NodeCard"
 import { ConfigDialog } from "@/components/ConfigDialog"
 import { LogsDialog } from "@/components/LogsDialog"
+import { LogoDialog } from "@/components/LogoDialog"
 import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square, LayoutList, LayoutGrid } from "lucide-react"
 import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName, sendNodeCommand, deleteNode, getNodeConfig, getNodeLogs } from "@/lib/api"
 import { tokenManager } from "@/lib/auth"
@@ -81,6 +82,7 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
   const [logsData, setLogsData] = useState<string>('')
   const [logsLoading, setLogsLoading] = useState(false)
   const [logsError, setLogsError] = useState<string | null>(null)
+  const [showLogoDialog, setShowLogoDialog] = useState(false)
 
   const getGatewayStatus = useCallback((node: NodeInfo): string => {
     if (!node.connected || !node.status?.openclawGateway) return 'unknown'
@@ -323,6 +325,7 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              <img src="/img/caribbean-logo.png" alt="Caribbean" className="h-10 w-auto cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowLogoDialog(true)} />
               <h1 className="text-2xl font-bold">{t('header.title')}</h1>
             </div>
             <div className="flex items-center gap-3">
@@ -699,6 +702,11 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
               logs={logsData}
               loading={logsLoading}
               error={logsError}
+            />
+
+            <LogoDialog
+              isOpen={showLogoDialog}
+              onClose={() => setShowLogoDialog(false)}
             />
 
            <AnimatePresence>
