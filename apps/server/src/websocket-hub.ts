@@ -2,7 +2,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import { NodeManager } from './node-manager.js';
 import { DatabaseManager } from './database.js';
-import type { Message, CommandMessage, ConnectMessage, ConnectedMessage, HeartbeatMessage, AckMessage } from '@caribbean/protocol';
+import type { Message, CommandMessage, ConnectMessage, ConnectedMessage, HeartbeatMessage, AckMessage, ResultMessage } from '@caribbean/protocol';
 
 export interface WebSocketServerConfig {
   port: number;
@@ -18,6 +18,7 @@ export class WebSocketHub {
   private config: WebSocketServerConfig;
   private clients: Map<string, WebSocket> = new Map();
   private onNodeUpdate?: (nodeId: string) => Promise<void>;
+  private commandResults: Map<string, { success: boolean; error?: string; data?: unknown; timestamp: string }> = new Map();
 
   constructor(
     config: WebSocketServerConfig, 
@@ -117,6 +118,9 @@ export class WebSocketHub {
       case 'ack':
         this.handleAck(message as AckMessage);
         break;
+      case 'result':
+        this.handleResult(message as ResultMessage);
+        break;
       default:
         console.log(`[Server] Unknown message type: ${message.type}`);
     }
@@ -195,6 +199,19 @@ export class WebSocketHub {
     }
   }
 
+  private handleResult(message: ResultMessage): void {
+    console.log(`[Server] Result received: ${message.id} - ${message.success ? 'success' : 'failed'}`);
+    this.commandResults.set(message.id, {
+      success: message.success,
+      error: message.error,
+      data: message.data,
+      timestamp: message.timestamp
+    });
+    if (!message.success && message.error) {
+      console.error(`[Server] Error: ${message.error}`);
+    }
+  }
+
   sendCommand(nodeId: string, action: string, params: Record<string, unknown>): string {
     const command: CommandMessage = {
       type: 'command',
@@ -220,6 +237,14 @@ export class WebSocketHub {
         ws.send(JSON.stringify({ type: 'dashboard:broadcast', data }));
       }
     }
+  }
+
+  getCommandResult(commandId: string) {
+    return this.commandResults.get(commandId);
+  }
+
+  clearCommandResult(commandId: string): void {
+    this.commandResults.delete(commandId);
   }
 
   private sendToNode(nodeId: string, message: unknown): void {

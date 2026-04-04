@@ -4,6 +4,18 @@
 
 Caribbean uses a custom JSON-based protocol over WebSocket for bidirectional real-time communication between Agents and the Server. All messages are JSON-encoded.
 
+## Message Types
+
+| Type | Direction | Description |
+|------|-----------|-------------|
+| `heartbeat` | Agent → Server | Periodic status report |
+| `command` | Server → Agent | Remote command execution |
+| `result` | Agent → Server | Command execution result with data |
+| `connect` | Agent → Server | Agent connection registration |
+| `connected` | Server → Agent | Connection acknowledgment |
+| `disconnect` | Agent → Server | Agent disconnection |
+| `ack` | Bidirectional | Command acknowledgment (deprecated, use `result`) |
+
 ## Message Format
 
 Every message contains a `type` field that identifies the message kind, along with a `payload` or action-specific fields.
@@ -121,6 +133,8 @@ The server can send remote commands to connected agents.
 | `update_config` | Configuration object | Update node configuration |
 | `openclaw_gateway_start` | — | Start OpenClaw Gateway on the agent node |
 | `openclaw_gateway_stop` | — | Stop OpenClaw Gateway on the agent node |
+| `read_config` | — | Read OpenClaw configuration file from agent |
+| `read_logs` | — | Read last 20 lines of OpenClaw logs |
 | `fix_openclaw_config` | `{ backup, dryRun }` | Fix OpenClaw configuration issues |
 | `get_openclaw_status` | — | Get detailed OpenClaw Gateway status |
 | `validate_openclaw` | — | Validate OpenClaw configuration file |
@@ -130,22 +144,73 @@ The server can send remote commands to connected agents.
 When a gateway start/stop command is received:
 
 1. Agent executes `openclaw gateway start` or `openclaw gateway stop` via `execSync` (30s timeout)
-2. Agent sends back an `ack` message with success/failure status
+2. Agent sends back a `result` message with success/failure status
 3. Agent triggers an immediate heartbeat to report updated Gateway status to the server
 4. Web dashboard reflects the status change on next data refresh
 
-### Command Acknowledgment
+### Command Result
 
-After processing a command, the agent sends back an acknowledgment:
+After processing a command, the agent sends back a result message containing the execution status and any returned data:
 
 ```json
 {
-  "type": "ack",
+  "type": "result",
   "timestamp": "2026-03-17T22:37:00Z",
   "id": "cmd-uuid-v4",
-  "success": true
+  "success": true,
+  "data": {
+    "config": {
+      "gateway": {
+        "port": 8000
+      },
+      "channels": {
+        "telegram": {
+          "token": "xxx",
+          "groupPolicy": "open"
+        }
+      },
+      "skills": ["shell", "github", "tmux", "browser"]
+    }
+  }
 }
 ```
+
+**Example for `read_logs` command:**
+
+```json
+{
+  "type": "result",
+  "timestamp": "2026-03-17T22:37:00Z",
+  "id": "cmd-uuid-v4",
+  "success": true,
+  "data": {
+    "logs": "[2026-03-17 22:37:00] INFO: Gateway started\n[2026-03-17 22:37:01] INFO: Listening on port 8000..."
+  }
+}
+```
+
+**Error Response:**
+
+```json
+{
+  "type": "result",
+  "timestamp": "2026-03-17T22:37:00Z",
+  "id": "cmd-uuid-v4",
+  "success": false,
+  "error": "Config file not found"
+}
+```
+
+**Result Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | string | Always `"result"` |
+| `timestamp` | string | ISO 8601 timestamp |
+| `id` | string | Command ID matching the original command |
+| `success` | boolean | Whether command executed successfully |
+| `error` | string? | Error message if success is false |
+| `data` | object? | Command-specific result data |
 
 ---
 
@@ -153,12 +218,14 @@ After processing a command, the agent sends back an acknowledgment:
 
 | Event | Direction | Description |
 |-------|-----------|-------------|
-| `agent:connect` | Client → Server | Agent connection registration |
-| `agent:heartbeat` | Client → Server | Periodic heartbeat / status report |
-| `agent:disconnect` | Client → Server | Agent disconnection |
-| `server:command` | Server → Client | Remote command dispatch |
-| `dashboard:subscribe` | Client → Server | Dashboard subscribes to updates |
-| `dashboard:broadcast` | Server → Client | Broadcast state changes to dashboards |
+| `connect` | Agent → Server | Agent connection registration |
+| `heartbeat` | Agent → Server | Periodic heartbeat / status report |
+| `disconnect` | Agent → Server | Agent disconnection |
+| `command` | Server → Agent | Remote command dispatch |
+| `result` | Agent → Server | Command execution result with data |
+| `ack` | Bidirectional | Command acknowledgment (deprecated) |
+| `connected` | Server → Agent | Connection acknowledgment with assigned node ID |
+| `dashboard:broadcast` | Server → Dashboard | Broadcast state changes to dashboards |
 
 ---
 

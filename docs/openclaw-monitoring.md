@@ -168,8 +168,86 @@ The dashboard supports remote Gateway lifecycle management. Users can select ins
 2. Dashboard sends `POST /api/nodes/:id/command` for each selected instance
 3. Server forwards the command to the agent via WebSocket
 4. Agent executes `openclaw gateway start/stop` locally via `execSync`
-5. Agent sends ack and triggers an immediate heartbeat with updated status
+5. Agent sends result message and triggers an immediate heartbeat with updated status
 6. Dashboard refreshes data and displays the updated Gateway status
+
+---
+
+## View Modes
+
+The dashboard supports two view modes for displaying node instances:
+
+### List View
+
+- Traditional table layout showing all node information in rows
+- Suitable for viewing many instances at once
+- Displays: Status, Name, ID, IP, Gateway Status, Last Seen, CPU, Memory, Uptime
+
+### Card View
+
+- Grid layout with each node in a card
+- Shows the same information as list view but in a more visual format
+- Additional features:
+  - **Configuration** button (配置) - Read and display `~/.openclaw/openclaw.json` in JSON format
+  - **Logs** button (日志) - Fetch and display last 20 lines of OpenClaw logs
+  - Both buttons are disabled for offline nodes
+
+**View Switching:**
+
+Click the list/grid icons in the top-right corner of the nodes section to toggle between views.
+
+---
+
+## Configuration and Logs Viewing
+
+### Configuration Viewing
+
+The dashboard can retrieve and display the OpenClaw configuration file from any online node:
+
+**Process:**
+
+1. User clicks "Configuration" button on a node card
+2. Dashboard sends `read_config` command via WebSocket
+3. Agent reads `~/.openclaw/openclaw.json` from the node
+4. Agent returns configuration in `result` message
+5. Dashboard polls `GET /api/commands/:id/result` endpoint to retrieve the config
+6. Configuration is displayed in a modal dialog with JSON syntax highlighting
+
+**Configuration Display:**
+
+- Full JSON content of `openclaw.json`
+- Read-only view
+- Can be scrolled for large configurations
+- Includes loading and error states
+
+### Logs Viewing
+
+The dashboard can retrieve and display recent OpenClaw logs from any online node:
+
+**Process:**
+
+1. User clicks "Logs" button on a node card
+2. Dashboard sends `read_logs` command via WebSocket
+3. Agent executes `openclaw logs | tail -n 20` on the node
+4. Agent returns last 20 log lines in `result` message
+5. Dashboard polls `GET /api/commands/:id/result` endpoint to retrieve the logs
+6. Logs are displayed in a modal dialog with monospace font
+
+**Log Display Features:**
+
+- Shows last 20 lines of OpenClaw logs
+- Monospace font for easy reading
+- Auto-wrapping for long lines
+- Download button to save logs as `.txt` file
+- Includes loading and error states
+
+**Important Notes:**
+
+- Configuration and logs are fetched in real-time from the agent
+- No data is stored in the server database
+- Results are cleared from server memory after retrieval
+- Both features require the node to be online
+- Commands time out after 5 seconds if no result is received
 
 ---
 
@@ -266,4 +344,49 @@ SELECT version, name, executed_at FROM migrations ORDER BY version;
 
 # Check history count per node
 SELECT node_id, COUNT(*) as count FROM status_history GROUP BY node_id;
+```
+
+---
+
+## Internationalization
+
+The dashboard supports multiple languages with easy switching:
+
+### Supported Languages
+
+| Language | Code | Usage |
+|----------|-------|-------|
+| English | `en` | Default for English-speaking users |
+| Chinese (Simplified) | `zh` | Default language (中文) |
+
+### Language Switching
+
+- Click the language selector button in the top-right header
+- Languages are stored in browser localStorage
+- Selected language persists across sessions
+
+### Localized Elements
+
+The following UI elements support internationalization:
+
+- **Header and navigation labels**
+- **Node list/table headers**
+- **Status indicators** (Online/Offline)
+- **Button labels**:
+  - Configuration / 配置
+  - Logs / 日志
+  - Start / 启动
+  - Stop / 停止
+  - Delete / 删除
+- **Time units** (minutes ago / 分钟前)
+- **Error messages and notifications**
+
+### Card View Labels
+
+In card view mode, the action buttons are localized:
+
+- **Configuration** → **配置** (Chinese)
+- **Logs** → **日志** (Chinese)
+
+These buttons are displayed in the user's selected language and are disabled when the node is offline.
 ```

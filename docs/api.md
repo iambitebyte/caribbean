@@ -435,6 +435,8 @@ POST /api/nodes/:id/command
 | `update_config` | Update node configuration | Configuration object |
 | `openclaw_gateway_start` | Start OpenClaw Gateway on the node | — |
 | `openclaw_gateway_stop` | Stop OpenClaw Gateway on the node | — |
+| `read_config` | Read OpenClaw configuration from agent | — |
+| `read_logs` | Read last 20 lines of OpenClaw logs | — |
 
 **Response (200 OK):**
 
@@ -453,6 +455,119 @@ POST /api/nodes/:id/command
 {
   "success": false,
   "error": "Node not connected"
+}
+```
+
+---
+
+### Get Command Result
+
+Retrieve the result of a previously sent command. This endpoint is used to fetch data returned by commands like `read_config` and `read_logs`.
+
+**Request:**
+
+```http
+GET /api/commands/:id/result
+Authorization: Bearer <your-jwt-token>
+```
+
+**Parameters:**
+
+- `id` (path): Command ID returned from the `/nodes/:id/command` endpoint
+
+**Response (200 OK):**
+
+For `read_config` command:
+
+```json
+{
+  "success": true,
+  "data": {
+    "config": {
+      "gateway": {
+        "port": 8000
+      },
+      "channels": {
+        "telegram": {
+          "token": "xxx",
+          "groupPolicy": "open"
+        }
+      },
+      "skills": ["shell", "github", "tmux", "browser"],
+      "agents": {
+        "active": 3,
+        "max": 10,
+        "list": ["reef", "navigator", "shell"]
+      }
+    }
+  },
+  "timestamp": "2026-03-17T22:37:00Z"
+}
+```
+
+For `read_logs` command:
+
+```json
+{
+  "success": true,
+  "data": {
+    "logs": "[2026-03-17 22:37:00] INFO: Gateway started\n[2026-03-17 22:37:01] INFO: Listening on port 8000..."
+  },
+  "timestamp": "2026-03-17T22:37:00Z"
+}
+```
+
+**Response (404 Not Found):**
+
+```json
+{
+  "error": "Command result not found"
+}
+```
+
+**Important Notes:**
+
+- Command results are temporarily stored in memory and are cleared after retrieval
+- If the command result is not yet available, retry after a short delay (recommended: 500ms)
+- The client should poll this endpoint with a timeout (recommended: 5 seconds)
+- Results are automatically deleted after being retrieved
+
+**Example Usage:**
+
+```javascript
+// 1. Send command to read config
+const commandResponse = await fetch('/api/nodes/node-01/command', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ action: 'read_config' })
+});
+const { commandId } = await commandResponse.json();
+
+// 2. Poll for result
+const maxRetries = 10;
+const retryDelay = 500;
+
+for (let i = 0; i < maxRetries; i++) {
+  await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+  try {
+    const resultResponse = await fetch(`/api/commands/${commandId}/result`);
+    if (resultResponse.status === 404) {
+      continue; // Result not ready yet
+    }
+
+    const result = await resultResponse.json();
+    if (result.success) {
+      console.log('Config:', result.data.config);
+      break;
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (error) {
+    if (i === maxRetries - 1) {
+      throw error;
+    }
+  }
 }
 ```
 

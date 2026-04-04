@@ -35,7 +35,9 @@
     "justNow": "Just now",
     "minutesAgo": "minutes ago",
     "hoursAgo": "hours ago",
-    "daysAgo": "days ago"
+    "daysAgo": "days ago",
+    "configuration": "Configuration",
+    "logs": "Logs"
   },
   "batchActions": {
     "selected": "{{count}} instance(s) selected",
