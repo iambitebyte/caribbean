@@ -1,5 +1,5 @@
 import { open, Database } from 'sqlite';
-import type { NodeInfo } from '@caribbean/shared';
+import type { NodeInfo } from '@openclaw-caribbean/shared';
 import { existsSync, mkdirSync, readFileSync, readdirSync } from 'fs';
 import { dirname, join } from 'path';
 import sqlite3 from 'sqlite3';

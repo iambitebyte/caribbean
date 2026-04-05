@@ -5,10 +5,10 @@
 Caribbean 使用 pnpm workspace + Changesets 进行多包管理和版本发布。
 
 发布 4 个包到 npm：
-- `@caribbean/shared` - 共享类型库
-- `@caribbean/protocol` - WebSocket 消息协议
-- `@caribbean/server` - 服务端 CLI 工具
-- `@caribbean/agent` - 客户端 Agent
+- `@openclaw-caribbean/shared` - 共享类型库
+- `@openclaw-caribbean/protocol` - WebSocket 消息协议
+- `@openclaw-caribbean/server` - 服务端 CLI 工具
+- `@openclaw-caribbean/agent` - 客户端 Agent
 
 ## 发布流程
 
@@ -147,10 +147,10 @@ git push
 pnpm changeset
 
 # 选择受影响的包：
-#   @caribbean/shared (影响 protocol/server/agent)
-#   @caribbean/protocol (影响 server/agent)
-#   @caribbean/server
-#   @caribbean/agent
+#   @openclaw-caribbean/shared (影响 protocol/server/agent)
+#   @openclaw-caribbean/protocol (影响 server/agent)
+#   @openclaw-caribbean/server
+#   @openclaw-caribbean/agent
 
 # 2. 选择变更类型：
 #   patch:  Bug 修复
@@ -182,7 +182,7 @@ git push --follow-tags
 ### 安装服务端
 
 ```bash
-npm install -g @caribbean/server
+npm install -g @openclaw-caribbean/server
 
 # 初始化配置
 caribbean-server init
@@ -194,7 +194,7 @@ caribbean-server start
 ### 安装 Agent
 
 ```bash
-npm install -g @caribbean/agent
+npm install -g @openclaw-caribbean/agent
 
 # 初始化配置
 caribbean-agent init --server ws://your-server:8080
@@ -207,10 +207,10 @@ caribbean-agent start
 
 必须按依赖顺序发布：
 
-1. **@caribbean/shared** - 无依赖
-2. **@caribbean/protocol** - 依赖 shared
-3. **@caribbean/server** - 依赖 protocol, shared
-4. **@caribbean/agent** - 依赖 protocol, shared
+1. **@openclaw-caribbean/shared** - 无依赖
+2. **@openclaw-caribbean/protocol** - 依赖 shared
+3. **@openclaw-caribbean/server** - 依赖 protocol, shared
+4. **@openclaw-caribbean/agent** - 依赖 protocol, shared
 
 Changesets 会自动处理顺序，但 `updateInternalDependencies: "patch"` 配置确保内部依赖更新。
 
@@ -224,7 +224,7 @@ Changesets 会自动处理顺序，但 `updateInternalDependencies: "patch"` 配
 2. 使用 `npm deprecate <package>@<version>` 标记为已废弃
 
 ```bash
-npm deprecate @caribbean/server@0.1.0 "Use version 0.1.1 instead"
+npm deprecate @openclaw-caribbean/server@0.1.0 "Use version 0.1.1 instead"
 ```
 
 ### Q: 发布失败怎么办？
@@ -232,9 +232,9 @@ npm deprecate @caribbean/server@0.1.0 "Use version 0.1.1 instead"
 检查以下几点：
 
 1. npm 是否登录：`npm whoami`
-2. npm scope 是否可访问：`npm view @caribbean/server`
+2. npm scope 是否可访问：`npm view @openclaw-caribbean/server`
 3. 网络连接是否正常
-4. 版本号是否已存在：`npm view @caribbean/server versions`
+4. 版本号是否已存在：`npm view @openclaw-caribbean/server versions`
 
 ### Q: 如何测试包？
 
@@ -268,7 +268,7 @@ npm org ls @caribbean
 npm org add @caribbean <username>
 
 # 设置为公开（如果是私有 scope）
-npm access public @caribbean/server
+npm access public @openclaw-caribbean/server
 ```
 
 ## GitHub Actions 自动发布（可选）

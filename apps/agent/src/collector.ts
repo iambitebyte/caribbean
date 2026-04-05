@@ -1,4 +1,4 @@
-import type { NodeStatus, MemoryInfo, CpuInfo, AgentsInfo, OpenClawGatewayStatus, DoctorWarning, Trouble } from '@caribbean/shared';
+import type { NodeStatus, MemoryInfo, CpuInfo, AgentsInfo, OpenClawGatewayStatus, DoctorWarning, Trouble } from '@openclaw-caribbean/shared';
 import os from 'os';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';

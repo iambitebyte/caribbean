@@ -1,6 +1,6 @@
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import type { DoctorWarning, Trouble } from '@caribbean/shared';
+import type { DoctorWarning, Trouble } from '@openclaw-caribbean/shared';
 
 export interface ConfigFixResult {
   success: boolean;

@@ -3,7 +3,7 @@ import cors from '@fastify/cors';
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
-import type { NodeInfo } from '@caribbean/shared';
+import type { NodeInfo } from '@openclaw-caribbean/shared';
 import { verifyToken, generateToken } from './auth.js';
 
 const CONFIG_PATH = join(homedir(), '.caribbean', 'server.json');

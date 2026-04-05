@@ -4,8 +4,8 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![npm version](https://badge.fury.io/js/@caribbean/server.svg)](https://www.npmjs.com/package/@caribbean/server)
-[![npm downloads](https://img.shields.io/npm/dm/@caribbean/server.svg)](https://www.npmjs.com/package/@caribbean/server)
+[![npm version](https://badge.fury.io/js/@openclaw-caribbean/server.svg)](https://www.npmjs.com/package/@openclaw-caribbean/server)
+[![npm downloads](https://img.shields.io/npm/dm/@openclaw-caribbean/server.svg)](https://www.npmjs.com/package/@openclaw-caribbean/server)
 
 ## 简介
 
@@ -50,10 +50,10 @@ Caribbean 是专为 [OpenClaw](https://github.com/allenai/openclaw) 设计的集
 
 ```bash
 # 安装服务端（包含 Web UI）
-npm install -g @caribbean/server
+npm install -g @openclaw-caribbean/server
 
 # 安装 Agent（在 OpenClaw 节点上）
-npm install -g @caribbean/agent
+npm install -g @openclaw-caribbean/agent
 ```
 
 ### 从源码安装

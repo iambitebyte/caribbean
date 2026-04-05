@@ -63,10 +63,10 @@ The server will start on:
 
 ```bash
 # Initialize agent configuration
-npx @caribbean/agent init --server ws://localhost:8080
+npx @openclaw-caribbean/agent init --server ws://localhost:8080
 
 # Start the agent
-npx @caribbean/agent start
+npx @openclaw-caribbean/agent start
 ```
 
 ### Configure Authentication
@@ -1019,10 +1019,10 @@ You can install Caribbean packages directly from npm without cloning the reposit
 
 ```bash
 # Install server (includes Web UI)
-npm install -g @caribbean/server
+npm install -g @openclaw-caribbean/server
 
 # Install agent (on OpenClaw nodes)
-npm install -g @caribbean/agent
+npm install -g @openclaw-caribbean/agent
 ```
 
 ### Initialize and Start Server
@@ -1060,23 +1060,23 @@ To update to the latest version:
 
 ```bash
 # Update server
-npm update -g @caribbean/server
+npm update -g @openclaw-caribbean/server
 
 # Update agent
-npm update -g @caribbean/agent
+npm update -g @openclaw-caribbean/agent
 
 # Or reinstall to get latest version
-npm install -g @caribbean/server@latest
+npm install -g @openclaw-caribbean/server@latest
 ```
 
 ### Uninstall
 
 ```bash
 # Uninstall server
-npm uninstall -g @caribbean/server
+npm uninstall -g @openclaw-caribbean/server
 
 # Uninstall agent
-npm uninstall -g @caribbean/agent
+npm uninstall -g @openclaw-caribbean/agent
 
 # Remove configuration directory (optional)
 rm -rf ~/.caribbean

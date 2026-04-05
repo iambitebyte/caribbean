@@ -2,7 +2,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import { NodeManager } from './node-manager.js';
 import { DatabaseManager } from './database.js';
-import type { Message, CommandMessage, ConnectMessage, ConnectedMessage, HeartbeatMessage, AckMessage, ResultMessage } from '@caribbean/protocol';
+import type { Message, CommandMessage, ConnectMessage, ConnectedMessage, HeartbeatMessage, AckMessage, ResultMessage } from '@openclaw-caribbean/protocol';
 
 export interface WebSocketServerConfig {
   port: number;
