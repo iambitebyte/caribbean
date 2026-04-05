@@ -2,6 +2,13 @@
 
 All notable changes to Caribbean will be documented in this file.
 
+## [0.2.1] - 2026-04-05
+
+### Fixed
+- Fixed TypeScript build error in `DatabaseManager`: added null check for `config.path` to handle `string | undefined` type correctly
+
+---
+
 ## [0.2.0] - 2026-04-04
 
 ### Added
