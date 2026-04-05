@@ -1,10 +1,15 @@
 import Fastify from 'fastify';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import cors from '@fastify/cors';
 import { readFileSync, existsSync, writeFileSync } from 'fs';
-import { join, dirname } from 'path';
 import { homedir } from 'os';
+import { createRequire } from 'module';
 import type { NodeInfo } from '@openclaw-caribbean/shared';
 import { verifyToken, generateToken } from './auth.js';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 
 const CONFIG_PATH = join(homedir(), '.caribbean', 'server.json');
 
@@ -105,6 +110,10 @@ export class ApiServer {
   private setupRoutes(): void {
     this.fastify.get('/api/health', async () => {
       return { status: 'ok', timestamp: new Date().toISOString() };
+    });
+
+    this.fastify.get('/api/version', async () => {
+      return { version };
     });
 
     this.fastify.get('/api/auth/status', async () => {
@@ -347,9 +356,9 @@ export class ApiServer {
   }
 
   private setupStaticFiles(): void {
-    if (!this.config.webDistPath) return;
+    const webDistPath = this.config.webDistPath || join(dirname(fileURLToPath(import.meta.url)), 'web');
 
-    const indexPath = join(this.config.webDistPath, 'index.html');
+    const indexPath = join(webDistPath, 'index.html');
 
     this.fastify.get('/', async (request: any, reply: any) => {
       if (existsSync(indexPath)) {

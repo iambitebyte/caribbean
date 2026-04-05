@@ -8,6 +8,7 @@ import { StatusCollector } from './collector.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
+import { createRequire } from 'module';
 import {
   readPid,
   writePid,
@@ -18,6 +19,9 @@ import {
 } from '@openclaw-caribbean/shared';
 import type { DoctorWarning, Trouble } from '@openclaw-caribbean/shared';
 
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
+
 const program = new Command();
 const CONFIG_PATH = join(homedir(), '.caribbean', 'agent.json');
 const PID_PATH = join(homedir(), '.caribbean', 'agent.pid');
@@ -26,7 +30,7 @@ const LOG_PATH = join(homedir(), '.caribbean', 'agent.log');
 program
   .name('caribbean-agent')
   .description('Caribbean Agent - Node monitoring and management')
-  .version('0.1.0');
+  .version(version);
 
 program
   .command('init')

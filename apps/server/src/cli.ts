@@ -5,6 +5,8 @@ import { CaribbeanServer } from './index.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
 import {
   readPid,
   writePid,
@@ -14,6 +16,11 @@ import {
   stopDaemon,
 } from '@openclaw-caribbean/shared';
 
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const DEFAULT_WEB_DIST_PATH = join(__dirname, 'web');
+
 const program = new Command();
 const CONFIG_PATH = join(homedir(), '.caribbean', 'server.json');
 const PID_PATH = join(homedir(), '.caribbean', 'server.pid');
@@ -22,7 +29,7 @@ const LOG_PATH = join(homedir(), '.caribbean', 'server.log');
 program
   .name('caribbean-server')
   .description('Caribbean Server - Cluster management hub')
-  .version('0.1.0');
+  .version(version);
 
 program
   .command('init')
@@ -39,11 +46,11 @@ program
       api: {
         port: 3000,
         host: '0.0.0.0',
-        webDistPath: join(process.cwd(), 'dist/web')
+        webDistPath: DEFAULT_WEB_DIST_PATH
       },
       database: {
         type: 'sqlite',
-        path: './data/caribbean.db'
+        path: join(homedir(), '.caribbean', 'data', 'caribbean.db')
       },
       auth: {
         enabled: !!options.token,

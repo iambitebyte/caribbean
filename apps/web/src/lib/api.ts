@@ -165,3 +165,8 @@ export async function updateAuthSettings(data: {
   const response = await apiClient.post('/settings/auth', data);
   return response.data;
 }
+
+export async function fetchVersion(): Promise<{ version: string }> {
+  const response = await apiClient.get('/version');
+  return response.data;
+}
