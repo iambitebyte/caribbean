@@ -146,3 +146,8 @@ data/
 *.sqlite
 *.sqlite3
 .turbo
+node_modules/
+dist/
+*.tgz
+tmp.json
+package/

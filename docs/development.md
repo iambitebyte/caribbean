@@ -2,21 +2,22 @@
 
 ## Prerequisites
 
-- Node.js 18+ or Bun runtime
+- Node.js 18+
 - pnpm package manager
+- jq（发布时需要）
 
 ## Quick Start
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/caribbean.git
+git clone https://github.com/bitebyte/caribbean.git
 cd caribbean
 
 # Install dependencies
 pnpm install
 
-# Build all packages
-pnpm build
+# Build all packages and start
+./start.sh
 ```
 
 ---
@@ -42,45 +43,54 @@ caribbean/
 │   │       ├── database.ts         # Database management
 │   │       └── index.ts            # Entry point
 │   │
-│   └── web/                # Web Dashboard
+│   └── web/                # Web Dashboard (private, not published)
 │       └── src/
 │           ├── components/          # UI components
-│           │   ├── ui/             # shadcn/ui components
-│           │   ├── NodeCard.tsx    # Node card component
-│           │   ├── Settings.tsx    # Settings page (new)
-│           │   ├── Login.tsx        # Login page
-│           │   └── ...              # Other components
 │           ├── lib/                # Utility functions
-│           │   ├── api.ts          # API client
-│           │   └── auth.ts         # Token management
 │           ├── i18n/               # Internationalization
-│           │   ├── zh.json         # Chinese translations
-│           │   └── en.json         # English translations
-│           ├── types/              # Type definitions
 │           ├── App.tsx             # Main app
 │           └── main.tsx            # Entry point
 │
 ├── packages/
-│   ├── shared/             # Shared type definitions
+│   ├── shared/             # @openclaw-caribbean/shared
 │   │   └── src/
-│   │       ├── node.ts             # Node types (includes OpenClawGatewayStatus)
+│   │       ├── node.ts         # Node types
+│   │       ├── daemon.ts       # Daemon management utilities
 │   │       └── index.ts
-│   └── protocol/           # Communication protocol specs
+│   └── protocol/           # @openclaw-caribbean/protocol
+│       └── src/
+│           ├── messages.ts     # Message types
+│           └── index.ts
 │
 ├── docs/                   # Documentation
 ├── docker/                 # Docker configuration
-└── start.sh                # One-click startup script
+├── build-all.sh            # Build all packages
+├── start.sh                # Build + start server & agent
+└── publish.sh              # Publish to npm
 ```
 
 ---
 
 ## Development Workflow
 
+### One-Click Build & Start
+
+```bash
+# Build everything and start server + agent
+./start.sh
+```
+
+### Build Only
+
+```bash
+# Build all packages (shared → protocol → web → server → agent)
+./build-all.sh
+```
+
 ### Start Server
 
 ```bash
 cd apps/server
-pnpm run build
 npm start
 ```
 
@@ -88,7 +98,6 @@ npm start
 
 ```bash
 cd apps/agent
-pnpm run build
 npm start
 ```
 
