@@ -1,6 +1,6 @@
 {
   "name": "caribbean",
-  "version": "0.1.0",
+  "version": "0.1.6",
   "private": true,
   "description": "OpenClaw 集群管理服务 - 实时监控、统一管理、智能调度",
   "packageManager": "pnpm@8.15.0",
