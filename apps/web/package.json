@@ -1,7 +1,8 @@
 {
-  "name": "openclaw-caribbean/web",
-  "version": "0.1.0",
+  "name": "@openclaw-caribbean/web",
+  "version": "0.1.1",
   "type": "module",
+  "private": true,
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

@@ -2,78 +2,117 @@
 
 ## 概述
 
-Caribbean 使用 pnpm workspace + Changesets 进行多包管理和版本发布。
+Caribbean 使用 pnpm workspace 管理多包，发布 4 个包到 npm：
 
-发布 4 个包到 npm：
-- `@openclaw-caribbean/shared` - 共享类型库
-- `@openclaw-caribbean/protocol` - WebSocket 消息协议
-- `@openclaw-caribbean/server` - 服务端 CLI 工具
-- `@openclaw-caribbean/agent` - 客户端 Agent
+| 包名 | 说明 | 依赖 |
+|------|------|------|
+| `@openclaw-caribbean/shared` | 共享类型和工具函数 | 无 |
+| `@openclaw-caribbean/protocol` | WebSocket 消息协议 | shared |
+| `@openclaw-caribbean/server` | 服务端（含 Web Dashboard） | shared, protocol |
+| `@openclaw-caribbean/agent` | 客户端 Agent | shared, protocol |
 
-## 发布流程
+## 快速发布
 
-### 首次发布（v0.1.0）
-
-```bash
-# 1. 安装 changeset 依赖
-pnpm install
-
-# 2. 构建所有包
-pnpm build
-
-# 3. 初始化 changeset（已完成）
-# 已创建 .changeset/config.json 和初始 changeset
-
-# 4. 应用版本变更
-pnpm changeset version
-
-# 5. 提交版本变更
-git add .
-git commit -m "chore: version packages to 0.1.0"
-
-# 6. 发布到 npm
-pnpm changeset publish
-
-# 7. 推送 tag 到 GitHub
-git push --follow-tags
-```
-
-### 后续版本更新
+使用 `publish.sh` 一键发布：
 
 ```bash
-# 1. 创建新的 changeset
-pnpm changeset
-
-# 选择受影响的包和变更类型（patch/minor/major）
-# 写入变更描述
-
-# 2. 应用版本变更
-pnpm changeset version
-
-# 3. 提交代码和变更
-git add .
-git commit -m "feat: add new feature"
-
-# 4. 发布到 npm
-pnpm changeset publish
-
-# 5. 推送 tag 到 GitHub
-git push --follow-tags
+./publish.sh 0.2.0
 ```
 
-## 包配置说明
+脚本会自动完成：
+1. 更新所有包版本号
+2. 将 `workspace:*` 临时替换为实际版本号
+3. 按依赖顺序构建（shared → protocol → web → server → agent）
+4. 将 web 构建产物复制到 server/dist/web
+5. 按依赖顺序发布到 npm
+6. 发布后将依赖恢复为 `workspace:*`
 
-### files 字段
+### 前提条件
 
-每个包的 package.json 都配置了 `files` 字段，控制发布到 npm 的文件：
+- 已登录 npm：`npm whoami`
+- 所有代码已提交（`--no-git-checks` 跳过 git 检查）
+- `jq` 已安装（用于修改 package.json）
+
+### 手动发布
+
+如果需要单独发布某个包：
+
+```bash
+# 1. 更新版本号
+cd packages/shared
+jq '.version = "0.2.0"' package.json > tmp.json && mv tmp.json package.json
+
+# 2. 构建
+pnpm run build
+
+# 3. 发布
+pnpm publish --access public --no-git-checks
+```
+
+**必须按依赖顺序发布：** shared → protocol → server → agent
+
+## 关键注意事项
+
+### ES 模块要求
+
+本项目使用 `"type": "module"`，所有包都是 ES 模块。在源码的 re-export 中必须包含 `.js` 扩展名：
+
+```typescript
+// ✅ 正确
+export * from './node.js';
+export * from './daemon.js';
+
+// ❌ 错误 - Node.js ESM 不支持省略扩展名
+export * from './node';
+```
+
+### workspace:* 依赖问题
+
+本地开发使用 `workspace:*` 引用 workspace 内的包，但 npm 不支持此协议。发布前必须替换为实际版本号：
+
+```json
+// 本地开发 (workspace)
+"@openclaw-caribbean/shared": "workspace:*"
+
+// 发布时 (npm)
+"@openclaw-caribbean/shared": "^0.2.0"
+```
+
+`publish.sh` 会自动处理替换和恢复。
+
+### Web Dashboard 构建
+
+Server 包包含 Web Dashboard 静态文件。发布时必须先构建 web 并复制到 server：
+
+```bash
+# 构建 web
+cd apps/web && pnpm run build
+
+# 复制到 server
+mkdir -p apps/server/dist/web
+cp -r apps/web/dist/* apps/server/dist/web/
+
+# 构建 server
+cd apps/server && pnpm run build
+```
+
+`publish.sh` 和 `build-all.sh` 都会自动完成此步骤。
+
+### exports 字段
+
+每个库包必须配置 `exports` 字段，否则 ES 模块导入会失败：
 
 ```json
 {
-  "files": ["dist"]
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": "./dist/index.js"
 }
 ```
 
-### publishConfig
+### 包名 scope
+
+所有包使用 `@openclaw-caribbean/` scope。scope 包必须在 `publishConfig` 中设置 `"access": "public"`：
 
 ```json
 {
@@ -83,105 +122,25 @@ git push --follow-tags
 }
 ```
 
-### prepublishOnly 脚本
-
-发布前自动构建：
-
-```json
-{
-  "scripts": {
-    "prepublishOnly": "pnpm run build"
-  }
-}
-```
-
-## Changesets 配置
-
-配置文件：`.changeset/config.json`
-
-```json
-{
-  "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
-  "changelog": ["@changesets/changelog-github", { "repo": "bitebyte/caribbean" }],
-  "commit": false,
-  "access": "public",
-  "baseBranch": "main",
-  "updateInternalDependencies": "patch"
-}
-```
-
-### 关键配置项说明
-
-| 配置项 | 值 | 说明 |
-|--------|-----|------|
-| `changelog` | `@changesets/changelog-github` | 使用 GitHub Releases 生成 changelog |
-| `repo` | `bitebyte/caribbean` | GitHub 仓库路径 |
-| `commit` | `false` | changeset 不自动创建 git commit（手动提交） |
-| `access` | `public` | 公开发布（非 scoped 包不需要） |
-| `updateInternalDependencies` | `patch` | workspace 包更新时自动 bump patch 版本 |
-| `baseBranch` | `main` | 主分支 |
-
-## 日常开发流程（不需要 npm 发布）
-
-日常代码提交只需：
+## 本地构建（不发布）
 
 ```bash
-# 1. 修改代码
-# 2. 提交到 git
-git add .
-git commit -m "feat: add some feature"
-git push
-```
+# 构建所有包
+./build-all.sh
 
-**不需要**：
-- ❌ 创建 changeset
-- ❌ 更新版本号
-- ❌ 发布到 npm
+# 或手动构建
+pnpm --filter './packages/**' build
+cd apps/server && pnpm run build:all
+cd apps/agent && pnpm run build
 
-这些步骤只在准备发布新版本时才需要。
-
-## 准备发布新版本时
-
-```bash
-# 1. 创建 changeset 描述变更
-pnpm changeset
-
-# 选择受影响的包：
-#   @openclaw-caribbean/shared (影响 protocol/server/agent)
-#   @openclaw-caribbean/protocol (影响 server/agent)
-#   @openclaw-caribbean/server
-#   @openclaw-caribbean/agent
-
-# 2. 选择变更类型：
-#   patch:  Bug 修复
-#   minor: 新功能（向后兼容）
-#   major: 破坏性变更
-
-# 3. 写入变更描述
-#   Examples:
-#   "Fix WebSocket connection timeout issue"
-#   "Add support for PostgreSQL database"
-#   "Add settings page for authentication"
-
-# 4. 应用版本变更
-pnpm changeset version
-
-# 5. 提交
-git add .
-git commit -m "chore: bump version to 0.2.0"
-
-# 6. 发布
-pnpm changeset publish
-
-# 7. 推送
-git push --follow-tags
+# 本地启动
+./start.sh
 ```
 
 ## 用户安装方式
 
-### 安装服务端
-
 ```bash
+# 安装 Server（含 Web UI）
 npm install -g @openclaw-caribbean/server
 
 # 初始化配置
@@ -189,128 +148,89 @@ caribbean-server init
 
 # 启动服务
 caribbean-server start
-```
 
-### 安装 Agent
-
-```bash
+# 安装 Agent（在需要监控的节点上）
 npm install -g @openclaw-caribbean/agent
-
-# 初始化配置
 caribbean-agent init --server ws://your-server:8080
-
-# 启动 agent
 caribbean-agent start
 ```
 
-## 发布顺序
+### 更新已安装的包
 
-必须按依赖顺序发布：
-
-1. **@openclaw-caribbean/shared** - 无依赖
-2. **@openclaw-caribbean/protocol** - 依赖 shared
-3. **@openclaw-caribbean/server** - 依赖 protocol, shared
-4. **@openclaw-caribbean/agent** - 依赖 protocol, shared
-
-Changesets 会自动处理顺序，但 `updateInternalDependencies: "patch"` 配置确保内部依赖更新。
+```bash
+sudo npm install -g @openclaw-caribbean/server@latest @openclaw-caribbean/agent@latest
+```
 
 ## 常见问题
 
-### Q: 如何撤销已发布的版本？
+### 安装报错 `EUNSUPPORTEDPROTOCOL: workspace:*`
 
-发布到 npm 的包无法删除或撤销。只能：
+发布的包中仍然包含 `workspace:*` 依赖。需要使用 `publish.sh` 重新发布，或手动替换依赖后发布。
 
-1. 发布新版本修复问题
-2. 使用 `npm deprecate <package>@<version>` 标记为已废弃
+### 安装报错 `ERR_MODULE_NOT_FOUND: Cannot find module '.../messages'`
+
+源码中 re-export 缺少 `.js` 扩展名。确保所有 `.ts` 文件的相对导入都包含 `.js` 扩展名：
+
+```typescript
+export * from './messages.js';  // 不是 './messages'
+```
+
+### 安装报错 `ERR_UNSUPPORTED_DIR_IMPORT`
+
+包的 `exports` 字段未正确配置。确保每个库包的 `package.json` 包含：
+
+```json
+{
+  "exports": "./dist/index.js"
+}
+```
+
+### 发布报错 `EOTP: This operation requires a one-time password`
+
+npm 启用了两步验证。发布时需要在浏览器中完成 OTP 认证，或使用 automation token：
 
 ```bash
-npm deprecate @openclaw-caribbean/server@0.1.0 "Use version 0.1.1 instead"
+# 方法1：浏览器 OTP 认证（按提示操作）
+pnpm publish --access public --no-git-checks
+
+# 方法2：使用 automation token（CI 场景）
+NPM_TOKEN=xxx pnpm publish --access public --no-git-checks
 ```
 
-### Q: 发布失败怎么办？
+### 发布报错 `You cannot publish over the previously published versions`
 
-检查以下几点：
-
-1. npm 是否登录：`npm whoami`
-2. npm scope 是否可访问：`npm view @openclaw-caribbean/server`
-3. 网络连接是否正常
-4. 版本号是否已存在：`npm view @openclaw-caribbean/server versions`
-
-### Q: 如何测试包？
-
-发布前可以本地测试：
+版本号已存在。需要更新版本号后重新发布：
 
 ```bash
-# 打包（不发布）
-npm pack --dry-run
-
-# 查看打包内容
-tar -tzf @caribbean-server-0.1.0.tgz
-
-# 实际打包
-npm pack
-
-# 在其他目录测试
-cd /tmp
-npm install /path/to/@caribbean-server-0.1.0.tg
-caribbean-server --version
+# 更新版本号
+jq '.version = "0.2.1"' package.json > tmp.json && mv tmp.json package.json
 ```
 
-## npm Org 管理
-
-查看 org 状态：
+### 如何测试包是否正常？
 
 ```bash
-# 查看成员
-npm org ls @caribbean
+# 1. 下载并检查包内容
+npm pack @openclaw-caribbean/server@latest
+tar -xzf openclaw-caribbean-server-*.tgz
+cat package/package.json
 
-# 添加成员
-npm org add @caribbean <username>
-
-# 设置为公开（如果是私有 scope）
-npm access public @openclaw-caribbean/server
+# 2. 在干净目录测试安装
+mkdir /tmp/test && cd /tmp/test
+npm init -y
+npm install @openclaw-caribbean/server
+node -e "import('@openclaw-caribbean/server').then(m => console.log('OK', Object.keys(m)))"
 ```
 
-## GitHub Actions 自动发布（可选）
+### 如何标记旧版本为废弃？
 
-创建 `.github/workflows/release.yml`：
-
-```yaml
-name: Release
-
-on:
-  push:
-    tags:
-      - 'v*'
-
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      - run: pnpm install
-      - run: pnpm build
-      - run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
-      - run: pnpm changeset publish
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```bash
+npm deprecate @openclaw-caribbean/server@0.1.0 "Use version 0.2.0 or later"
 ```
 
-需要在 GitHub 仓库设置中添加：
-- `NPM_TOKEN`: npm 自动化 token
-- `GITHUB_TOKEN`: GitHub PAT（用于创建 Release）
+## 项目脚本说明
 
-## 总结
-
-- **日常开发**：只需 git commit，不需要 npm 发布
-- **发布新版本**：创建 changeset → version → publish → push tags
-- **自动依赖更新**：changeset 自动处理 workspace 包版本
-- **版本策略**：遵循语义化版本（Semantic Versioning）
-
-详细文档参考：
-- [Changesets 官方文档](https://github.com/changesets/changesets)
-- [pnpm changeset 配置](https://pnpm.io/package.json#changesets)
+| 脚本 | 用途 |
+|------|------|
+| `./build-all.sh` | 本地构建所有包（shared → protocol → web → server → agent） |
+| `./start.sh` | 构建 + 启动 server 和 agent（本地开发用） |
+| `./publish.sh <version>` | 一键发布所有包到 npm |

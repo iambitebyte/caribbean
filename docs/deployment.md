@@ -1056,26 +1056,34 @@ caribbean-agent status
 
 ### Update Packages
 
-To update to the latest version:
+```bash
+# Update to latest version
+sudo npm install -g @openclaw-caribbean/server@latest @openclaw-caribbean/agent@latest
+
+# Restart services after update
+caribbean-server restart
+caribbean-agent restart
+```
+
+### Verify Installation
 
 ```bash
-# Update server
-npm update -g @openclaw-caribbean/server
+# Check versions
+caribbean-server --version
+caribbean-agent --version
 
-# Update agent
-npm update -g @openclaw-caribbean/agent
+# Verify server is running
+caribbean-server status
 
-# Or reinstall to get latest version
-npm install -g @openclaw-caribbean/server@latest
+# Verify agent is connected
+caribbean-agent status
 ```
 
 ### Uninstall
 
 ```bash
-# Uninstall server
+# Uninstall packages
 npm uninstall -g @openclaw-caribbean/server
-
-# Uninstall agent
 npm uninstall -g @openclaw-caribbean/agent
 
 # Remove configuration directory (optional)
@@ -1094,6 +1102,7 @@ rm -rf ~/.caribbean
 | `caribbean-server restart` | Restart server |
 | `caribbean-server status` | Show server status |
 | `caribbean-server set-auth` | Set authentication credentials |
+| `caribbean-server logs` | View server logs |
 
 #### Agent Commands
 
@@ -1104,22 +1113,7 @@ rm -rf ~/.caribbean
 | `caribbean-agent stop` | Stop agent |
 | `caribbean-agent restart` | Restart agent |
 | `caribbean-agent status` | Show agent status |
-
-### Installation Verification
-
-```bash
-# Check installation
-caribbean-server --version
-caribbean-agent --version
-
-# Test server
-caribbean-server start
-# Open browser to http://localhost:3000
-
-# Test agent
-caribbean-agent start
-# Check server dashboard for connected agent
-```
+| `caribbean-agent logs` | View agent logs |
 
 ## Support
 
