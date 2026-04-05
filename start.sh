@@ -40,16 +40,16 @@ echo ""
 
 # Stop existing instances
 echo "🛑 Stopping existing Server..."
-pnpm exec caribbean-server stop
+pnpm --filter @openclaw-caribbean/server exec node dist/cli.js stop
 
 echo "🛑 Stopping existing Agent..."
-pnpm exec caribbean-agent stop
+pnpm --filter @openclaw-caribbean/agent exec node dist/cli.js stop
 
 echo ""
 
 # Start server in background
 echo "🚀 Starting Server..."
-pnpm exec caribbean-server start
+pnpm --filter @openclaw-caribbean/server exec node dist/cli.js start
 
 if [ $? -ne 0 ]; then
   echo "❌ Failed to start server"
@@ -59,7 +59,7 @@ fi
 # Start agent in background
 echo ""
 echo "🚀 Starting Agent..."
-pnpm exec caribbean-agent start
+pnpm --filter @openclaw-caribbean/agent exec node dist/cli.js start
 
 if [ $? -ne 0 ]; then
   echo "❌ Failed to start agent"

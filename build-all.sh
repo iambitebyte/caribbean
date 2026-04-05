@@ -3,9 +3,19 @@
 echo "Building Caribbean Server and Web Dashboard..."
 echo "================================================"
 
+# Build shared package
+echo "Building Shared Package..."
+cd packages/shared
+pnpm run build
+
+# Build protocol package
+echo "Building Protocol Package..."
+cd ../protocol
+pnpm run build
+
 # Build web app
 echo "Building Web Dashboard..."
-cd apps/web
+cd ../../apps/web
 pnpm run build
 
 # Create server web directory

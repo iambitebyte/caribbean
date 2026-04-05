@@ -49,8 +49,8 @@ Caribbean is an OpenClaw cluster management hub that provides real-time monitori
 
 | Package | Purpose |
 |---------|---------|
-| `@caribbean/shared` | Shared TypeScript types (NodeInfo, NodeStatus, etc.) |
-| `@caribbean/protocol` | Wire protocol message types for WebSocket communication |
+| `@openclaw-caribbean/shared` | Shared TypeScript types (NodeInfo, NodeStatus, etc.) |
+| `@openclaw-caribbean/protocol` | Wire protocol message types for WebSocket communication |
 
 ## Architecture Diagram
 
@@ -283,7 +283,7 @@ The current setup effectively achieves the "single binary" goal:
 ```bash
 # Build process
 apps/web (Vite) → build → copy to apps/server/dist/web/
-apps/server → build → single binary @caribbean/server
+apps/server → build → single binary @openclaw-caribbean/server
 
 # Runtime
 caribbean-server start  # spawns one process with both :3000 and :8080

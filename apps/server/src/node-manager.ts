@@ -1,4 +1,4 @@
-import type { NodeInfo, NodeStatus } from '@caribbean/shared';
+import type { NodeInfo, NodeStatus } from '@openclaw-caribbean/shared';
 import { randomUUID } from 'crypto';
 
 export class NodeManager {

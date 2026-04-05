@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { execSync } from 'child_process';
-import type { Message } from '@caribbean/protocol';
-import type { NodeStatus } from '@caribbean/shared';
+import type { Message } from '@openclaw-caribbean/protocol';
+import type { NodeStatus } from '@openclaw-caribbean/shared';
 import os from 'os';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';

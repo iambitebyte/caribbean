@@ -1,4 +1,4 @@
-import type { NodeStatus } from '@caribbean/shared';
+import type { NodeStatus } from '@openclaw-caribbean/shared';
 
 export type MessageType = 'heartbeat' | 'command' | 'connect' | 'disconnect' | 'ack' | 'connected' | 'result';
 

@@ -15,7 +15,8 @@ import {
   processExists,
   spawnDaemon,
   stopDaemon,
-} from '@caribbean/shared';
+} from '@openclaw-caribbean/shared';
+import type { DoctorWarning, Trouble } from '@openclaw-caribbean/shared';
 
 const program = new Command();
 const CONFIG_PATH = join(homedir(), '.caribbean', 'agent.json');
