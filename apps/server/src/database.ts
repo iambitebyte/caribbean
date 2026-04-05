@@ -26,7 +26,8 @@ export class DatabaseManager {
 
   async connect(): Promise<void> {
     if (this.config.type === 'sqlite') {
-      const dbPath = this.config.path || './data/caribbean.db';
+      const dbPath = this.config.path;
+      if (!dbPath) throw new Error('SQLite path is required');
       const dbDir = dirname(dbPath);
 
       if (!existsSync(dbDir)) {
