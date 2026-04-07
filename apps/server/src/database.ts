@@ -114,6 +114,11 @@ export class DatabaseManager {
         version: 1,
         name: 'add_client_ip_column',
         up: `ALTER TABLE nodes ADD COLUMN client_ip TEXT;`
+      },
+      {
+        version: 2,
+        name: 'add_system_column',
+        up: `ALTER TABLE nodes ADD COLUMN system TEXT;`
       }
     ];
   }
@@ -151,7 +156,7 @@ export class DatabaseManager {
     if (existingNode) {
       // Update existing node - only update necessary fields, preserve name
       await this.db.run(
-        `UPDATE nodes SET tags = ?, connected = ?, last_seen = ?, status = ?, openclaw_status = ?, client_ip = ?, updated_at = ? WHERE id = ?`,
+        `UPDATE nodes SET tags = ?, connected = ?, last_seen = ?, status = ?, openclaw_status = ?, client_ip = ?, system = ?, updated_at = ? WHERE id = ?`,
         [
           tagsJson,
           node.connected ? 1 : 0,
@@ -159,6 +164,7 @@ export class DatabaseManager {
           statusJson,
           node.openclawStatus || 'unknown',
           node.clientIp || null,
+          node.system || null,
           now,
           node.id
         ]
@@ -166,8 +172,8 @@ export class DatabaseManager {
     } else {
       // Insert new node
       await this.db.run(
-        `INSERT INTO nodes (id, name, tags, connected, last_seen, status, openclaw_status, client_ip, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO nodes (id, name, tags, connected, last_seen, status, openclaw_status, client_ip, system, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           node.id,
           node.name,
@@ -177,6 +183,7 @@ export class DatabaseManager {
           statusJson,
           node.openclawStatus || 'unknown',
           node.clientIp || null,
+          node.system || null,
           now
         ]
       );
@@ -316,7 +323,8 @@ export class DatabaseManager {
       lastSeen: new Date(row.last_seen),
       status: row.status ? JSON.parse(row.status) : undefined,
       openclawStatus: row.openclaw_status || 'unknown',
-      clientIp: row.client_ip || undefined
+      clientIp: row.client_ip || undefined,
+      system: row.system || undefined
     };
   }
 

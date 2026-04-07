@@ -147,7 +147,7 @@ export class WebSocketHub {
     message: ConnectMessage,
     setNodeId: (id: string) => void
   ): Promise<void> {
-    const { nodeId, name, tags, version, clientIp } = message.payload;
+    const { nodeId, name, tags, version, clientIp, system } = message.payload;
 
     // Generate a new node ID if not provided
     let actualNodeId = nodeId;
@@ -162,8 +162,9 @@ export class WebSocketHub {
     const nodeName = existingNode ? existingNode.name : name;
     const nodeTags = existingNode ? existingNode.tags : tags;
     const nodeClientIp = existingNode ? (clientIp || existingNode.clientIp) : clientIp;
+    const nodeSystem = system || existingNode?.system;
 
-    this.nodeManager.registerNode(actualNodeId, nodeName, nodeTags, nodeClientIp);
+    this.nodeManager.registerNode(actualNodeId, nodeName, nodeTags, nodeClientIp, nodeSystem);
     this.clients.set(actualNodeId, ws);
     setNodeId(actualNodeId);
 

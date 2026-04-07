@@ -15,7 +15,7 @@ import { ConfigDialog } from "@/components/ConfigDialog"
 import { LogsDialog } from "@/components/LogsDialog"
 import { LogoDialog } from "@/components/LogoDialog"
 import Settings from "@/components/Settings"
-import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square, LayoutList, LayoutGrid, Settings as SettingsIcon } from "lucide-react"
+import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square, LayoutList, LayoutGrid, Settings as SettingsIcon, Monitor } from "lucide-react"
 import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName, sendNodeCommand, deleteNode, getNodeConfig, getNodeLogs } from "@/lib/api"
 import { tokenManager } from "@/lib/auth"
 import { cn } from "@/lib/utils"
@@ -539,6 +539,7 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                           <TableHead>{t('nodes.instanceName')}</TableHead>
                           <TableHead>{t('nodes.id')}</TableHead>
                           <TableHead>{t('nodes.clientIp')}</TableHead>
+                          <TableHead>{t('nodes.system')}</TableHead>
                           <TableHead>{t('nodes.connectionStatus')}</TableHead>
                           <TableHead>Gateway</TableHead>
                           <TableHead>{t('nodes.lastSeen')}</TableHead>
@@ -608,6 +609,14 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                             <TableCell className="text-muted-foreground text-sm">{node.id}</TableCell>
                             <TableCell className="text-muted-foreground text-sm">
                               {node.clientIp || '-'}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {node.system ? (
+                                <div className="flex items-center gap-1">
+                                  <Monitor className="h-3 w-3 text-muted-foreground" />
+                                  <span className="capitalize">{node.system}</span>
+                                </div>
+                              ) : '-'}
                             </TableCell>
                             <TableCell>
                               <Badge variant={node.connected ? "success" : "destructive"} className="whitespace-nowrap">

@@ -26,11 +26,12 @@ export interface CommandMessage extends BaseMessage {
 export interface ConnectMessage extends BaseMessage {
   type: 'connect';
   payload: {
-    nodeId?: string; // Optional - if not provided, server will generate one
+    nodeId?: string;
     name: string;
     tags: string[];
     version: string;
     clientIp?: string;
+    system?: 'windows' | 'mac' | 'linux';
   };
 }
 

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Checkbox } from "@/components/ui/Checkbox"
 import { Button } from "@/components/ui/Button"
-import { Cpu, MemoryStick, Clock, Settings, FileText } from "lucide-react"
+import { Cpu, MemoryStick, Clock, Settings, FileText, Monitor } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "react-i18next"
 
@@ -74,6 +74,17 @@ export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, g
           <div>
             <p className="text-xs text-muted-foreground mb-1">{t('nodes.clientIp')}</p>
             <p className="text-sm">{node.clientIp || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">{t('nodes.system')}</p>
+            {node.system ? (
+              <div className="flex items-center gap-1">
+                <Monitor className="h-3 w-3 text-muted-foreground" />
+                <span className="text-sm capitalize">{node.system}</span>
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">-</span>
+            )}
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">Gateway</p>

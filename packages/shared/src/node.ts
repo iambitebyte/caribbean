@@ -47,6 +47,8 @@ export interface AgentsInfo {
   list: string[];
 }
 
+export type SystemType = 'windows' | 'mac' | 'linux';
+
 export interface NodeInfo {
   id: string;
   name: string;
@@ -56,4 +58,5 @@ export interface NodeInfo {
   status?: NodeStatus;
   openclawStatus?: string;
   clientIp?: string;
+  system?: SystemType;
 }

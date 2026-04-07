@@ -26,6 +26,7 @@
     "id": "ID",
     "connectionStatus": "Connection Status",
     "clientIp": "IP Address",
+    "system": "System",
     "lastSeen": "Last Seen",
     "cpu": "CPU",
     "memory": "Memory",

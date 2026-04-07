@@ -26,6 +26,7 @@
     "id": "ID",
     "connectionStatus": "连接状态",
     "clientIp": "IP 地址",
+    "system": "系统",
     "lastSeen": "最后上线",
     "cpu": "CPU",
     "memory": "内存",

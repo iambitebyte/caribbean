@@ -10,13 +10,14 @@ export class NodeManager {
     return randomUUID();
   }
 
-  registerNode(nodeId: string, name: string, tags: string[], clientIp?: string): void {
+  registerNode(nodeId: string, name: string, tags: string[], clientIp?: string, system?: 'windows' | 'mac' | 'linux'): void {
     const existingNode = this.nodes.get(nodeId);
 
     if (existingNode) {
       existingNode.connected = true;
       existingNode.lastSeen = new Date();
       existingNode.clientIp = clientIp || existingNode.clientIp;
+      if (system) existingNode.system = system;
       console.log(`[Server] Node reconnected: ${existingNode.name} (${nodeId})`);
     } else {
       const node: NodeInfo = {
@@ -25,7 +26,8 @@ export class NodeManager {
         tags,
         connected: true,
         lastSeen: new Date(),
-        clientIp
+        clientIp,
+        system
       };
       this.nodes.set(nodeId, node);
       console.log(`[Server] Node registered: ${name} (${nodeId})`);

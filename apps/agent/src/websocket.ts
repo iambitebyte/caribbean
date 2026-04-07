@@ -70,6 +70,9 @@ export class WebSocketClient {
     }
     this.debugLog('Request Headers:', JSON.stringify(headers, null, 2));
 
+    const system = this.getSystemType();
+    this.debugLog('System:', system);
+
     const url = this.config.url;
     this.debugLog('Creating WebSocket instance...');
     this.ws = new WebSocket(url, { headers });
@@ -141,7 +144,8 @@ export class WebSocketClient {
         name: this.config.name,
         tags: this.config.tags,
         version: this.config.version,
-        clientIp: this.getLocalIp()
+        clientIp: this.getLocalIp(),
+        system: this.getSystemType()
       }
     };
     this.debugLog('Connect message:', JSON.stringify(message, null, 2));
@@ -229,6 +233,13 @@ export class WebSocketClient {
       }
     }
     return '127.0.0.1';
+  }
+
+  private getSystemType(): 'windows' | 'mac' | 'linux' {
+    const platform = os.platform();
+    if (platform === 'win32') return 'windows';
+    if (platform === 'darwin') return 'mac';
+    return 'linux';
   }
 
   private getReadyStateName(state: number): string {
