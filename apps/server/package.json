@@ -17,7 +17,7 @@
     "dev": "tsc --watch",
     "start": "node dist/cli.js start",
     "clean": "rm -rf dist",
-    "build:web": "cd ../web && pnpm run build && mkdir -p ../server/dist/web && cp -r dist/* ../server/dist/web/",
+    "build:web": "cd ../web && pnpm run build && rm -rf ../server/dist/web && mkdir -p ../server/dist/web && cp -r dist/* ../server/dist/web/",
     "build:all": "pnpm run build:web && pnpm run build",
     "prepublishOnly": "pnpm run build:all"
   },

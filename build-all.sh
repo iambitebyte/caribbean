@@ -21,6 +21,7 @@ pnpm run build
 # Create server web directory
 echo "Copying Web Dashboard to Server..."
 cd ../server
+rm -rf dist/web
 mkdir -p dist/web
 
 # Copy web build to server
