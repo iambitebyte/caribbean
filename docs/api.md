@@ -437,6 +437,7 @@ POST /api/nodes/:id/command
 | `openclaw_gateway_stop` | Stop OpenClaw Gateway on the node | — |
 | `read_config` | Read OpenClaw configuration from agent | — |
 | `read_logs` | Read last 20 lines of OpenClaw logs | — |
+| `gateway_health_check` | Run Gateway health check via `openclaw gateway call health` | — |
 
 **Response (200 OK):**
 

@@ -159,9 +159,39 @@ export class StatusCollector {
       }
 
       const detailedStatus = this.collectDetailedOpenClawStatus(statusOutput);
+      detailedStatus.healthCheck = this.checkGatewayHealth();
+      if (!detailedStatus.healthCheck.ok && detailedStatus.healthy) {
+        detailedStatus.healthy = false;
+      }
       return detailedStatus;
     } catch (error) {
       return 'stopped';
+    }
+  }
+
+  private checkGatewayHealth(): { ok: boolean; ts?: number; durationMs?: number; error?: string } {
+    try {
+      const output = execSync('openclaw gateway call health', {
+        encoding: 'utf-8',
+        timeout: 10000
+      });
+
+      const jsonMatch = output.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return { ok: false, error: 'No JSON found in health response' };
+      }
+
+      const health = JSON.parse(jsonMatch[0]);
+      return {
+        ok: health.ok === true,
+        ts: health.ts,
+        durationMs: health.durationMs
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
     }
   }
 

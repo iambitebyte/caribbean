@@ -6,6 +6,12 @@ export interface OpenClawGatewayStatus {
   doctorWarnings?: DoctorWarning[];
   troubles?: Trouble[];
   healthy: boolean;
+  healthCheck?: {
+    ok: boolean;
+    ts?: number;
+    durationMs?: number;
+    error?: string;
+  };
 }
 
 export interface DoctorWarning {

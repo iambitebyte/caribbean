@@ -2,6 +2,20 @@
 
 All notable changes to Caribbean will be documented in this file.
 
+## [0.3.0] - 2026-04-14
+
+### Added
+- **Gateway Health Check** - Agent now runs `openclaw gateway call health` during each heartbeat
+  - Parses JSON response and checks `"ok": true`
+  - Results included in `healthCheck` field of `openclawGateway` status
+  - Marks node as unhealthy if health check fails
+  - On-demand `gateway_health_check` command for remote triggering
+
+### Changed
+- `OpenClawGatewayStatus` interface extended with `healthCheck` field (`ok`, `ts`, `durationMs`, `error`)
+
+---
+
 ## [0.2.1] - 2026-04-05
 
 ### Fixed

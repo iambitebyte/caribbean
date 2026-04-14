@@ -16,7 +16,7 @@ The agent periodically collects the following Gateway status information:
 |--------|-------------|
 | **Running status** | `running`, `stopped`, or `error` |
 | **Process info** | PID, port, version |
-| **Health check** | Overall health assessment |
+| **Health check** | Overall health assessment via `openclaw gateway call health` |
 | **Doctor Warnings** | Configuration warnings and suggestions |
 | **Troubles** | Configuration problems and errors |
 
@@ -34,6 +34,40 @@ curl -s -o /dev/null -w "%{http_code}" \
 - **Timeouts**: 3s connect, 5s total
 - **Status**: Returns `"running"` or `"stopped"`
 - **Reporting**: Included in every heartbeat message to the server
+
+### Gateway Health Check
+
+When the Gateway is running, the agent also performs a real health check via `openclaw gateway call health`:
+
+```bash
+openclaw gateway call health
+```
+
+- **Timeout**: 10 seconds
+- **Success**: Parses JSON response and checks `"ok": true`
+- **Failure**: Records error message and marks the node as unhealthy
+- **Integration**: Results are included in the `healthCheck` field of `openclawGateway` status
+
+**Healthy response:**
+
+```json
+{
+  "ok": true,
+  "ts": 1776180771768,
+  "durationMs": 0
+}
+```
+
+**Unhealthy response:**
+
+```json
+{
+  "ok": false,
+  "error": "gateway closed (1006 abnormal closure)"
+}
+```
+
+If the health check fails (`ok !== true`), the overall `healthy` field is set to `false` regardless of other diagnostics.
 
 ### Advantages of Agent-Side Verification
 
@@ -91,7 +125,12 @@ The agent automatically detects the following issues:
         "message": "No authentication configured (apiKey or jwt)",
         "severity": "warning"
       }
-    ]
+    ],
+    "healthCheck": {
+      "ok": true,
+      "ts": 1776180771768,
+      "durationMs": 0
+    }
   }
 }
 ```
@@ -232,6 +271,36 @@ The dashboard can retrieve and display recent OpenClaw logs from any online node
 4. Agent returns last 20 log lines in `result` message
 5. Dashboard polls `GET /api/commands/:id/result` endpoint to retrieve the logs
 6. Logs are displayed in a modal dialog with monospace font
+
+### On-Demand Health Check
+
+The dashboard can trigger an on-demand Gateway health check on any online node:
+
+**Process:**
+
+1. Dashboard sends `gateway_health_check` command via WebSocket
+2. Agent executes `openclaw gateway call health` on the node
+3. Agent parses the JSON response and checks `"ok": true`
+4. Agent returns the health data in a `result` message
+5. Agent triggers an immediate heartbeat with updated status
+6. Dashboard polls `GET /api/commands/:id/result` to retrieve the health data
+
+**Result example:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "health": {
+      "ok": true,
+      "ts": 1776180771768,
+      "durationMs": 0,
+      "channels": {},
+      "defaultAgentId": "main"
+    }
+  }
+}
+```
 
 **Log Display Features:**
 

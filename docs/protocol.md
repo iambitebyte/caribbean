@@ -105,6 +105,16 @@ Agents periodically send heartbeat messages containing the full node status, inc
 | `healthy` | boolean | Overall health assessment |
 | `doctorWarnings` | array | Configuration warnings |
 | `troubles` | array | Configuration problems |
+| `healthCheck` | object | Gateway health check result (see below) |
+
+### Health Check Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `healthCheck.ok` | boolean | Whether the gateway health check passed (`"ok": true` from `openclaw gateway call health`) |
+| `healthCheck.ts` | number | Timestamp of the health check response |
+| `healthCheck.durationMs` | number | Response duration in milliseconds |
+| `healthCheck.error` | string | Error message if health check failed |
 
 ---
 
@@ -135,6 +145,7 @@ The server can send remote commands to connected agents.
 | `openclaw_gateway_stop` | — | Stop OpenClaw Gateway on the agent node |
 | `read_config` | — | Read OpenClaw configuration file from agent |
 | `read_logs` | — | Read last 20 lines of OpenClaw logs |
+| `gateway_health_check` | — | Run `openclaw gateway call health` and return result |
 | `fix_openclaw_config` | `{ backup, dryRun }` | Fix OpenClaw configuration issues |
 | `get_openclaw_status` | — | Get detailed OpenClaw Gateway status |
 | `validate_openclaw` | — | Validate OpenClaw configuration file |

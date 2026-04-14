@@ -370,6 +370,17 @@ export class WebSocketClient {
         const logs = execSync('openclaw logs | tail -n 20', { encoding: 'utf-8', timeout: 5000 });
         console.log('[Agent] Logs read successfully');
         return { logs: logs.trim() };
+      case 'gateway_health_check':
+        console.log('[Agent] Running gateway health check...');
+        const healthOutput = execSync('openclaw gateway call health', { encoding: 'utf-8', timeout: 10000 });
+        const healthJsonMatch = healthOutput.match(/\{[\s\S]*\}/);
+        if (!healthJsonMatch) {
+          throw new Error('No JSON found in health response');
+        }
+        const healthData = JSON.parse(healthJsonMatch[0]);
+        console.log('[Agent] Health check completed, ok:', healthData.ok);
+        this.sendHeartbeat();
+        return { health: healthData };
       default:
         throw new Error(`Unknown command: ${action}`);
     }
