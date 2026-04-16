@@ -152,9 +152,11 @@ export class StatusCollector {
       });
 
       const runningMatch = statusOutput.match(/Runtime:\s*(\w+)/i);
-      const status = runningMatch ? runningMatch[1].toLowerCase() : 'stopped';
+      const rpcProbeOk = /RPC probe:\s*ok/i.test(statusOutput);
+      const listening = /Listening:\s*\S+:\d+/i.test(statusOutput);
+      const isRunning = (runningMatch && runningMatch[1].toLowerCase() === 'running') || rpcProbeOk || listening;
 
-      if (status !== 'running') {
+      if (!isRunning) {
         return 'stopped';
       }
 
