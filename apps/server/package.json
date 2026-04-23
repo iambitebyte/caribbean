@@ -1,6 +1,6 @@
 {
   "name": "@openclaw-caribbean/server",
-  "version": "0.1.13",
+  "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {

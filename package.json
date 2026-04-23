@@ -20,7 +20,11 @@
     "agent:stop": "caribbean-agent stop",
     "agent:restart": "caribbean-agent restart",
     "agent:status": "caribbean-agent status",
-    "agent:logs": "caribbean-agent logs"
+    "agent:logs": "caribbean-agent logs",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish",
+    "release": "./release.sh"
   },
   "keywords": [
     "cluster",
