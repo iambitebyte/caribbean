@@ -21,14 +21,15 @@ function DropdownMenu({ children }: { children: React.ReactNode }) {
   )
 }
 
-function DropdownMenuTrigger({ children, className }: { children: React.ReactNode; className?: string }) {
+function DropdownMenuTrigger({ children, className, disabled }: { children: React.ReactNode; className?: string; disabled?: boolean }) {
   const { open, setOpen } = React.useContext(DropdownMenuContext)
 
   return (
     <button
       type="button"
       className={className}
-      onClick={() => setOpen(!open)}
+      onClick={() => !disabled && setOpen(!open)}
+      disabled={disabled}
     >
       {children}
     </button>

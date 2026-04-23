@@ -32,13 +32,13 @@ export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, g
   return (
     <Card
       className={cn(
-        "transition-all hover:shadow-md",
-        !node.connected && "opacity-60",
-        selected && "ring-2 ring-blue-500"
+        "transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
+        !node.connected && "opacity-60 grayscale-[0.5]",
+        selected && "ring-2 ring-[hsl(var(--primary))] shadow-lg"
       )}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <Checkbox
               checked={selected}
@@ -46,22 +46,22 @@ export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, g
             />
             <div className="flex items-center gap-2">
               {node.connected ? (
-                <img 
-                  src="/img/openclaw-logo.svg" 
-                  alt="OpenClaw Logo" 
-                  className="h-5 w-5"
+                <img
+                  src="/img/openclaw-logo.svg"
+                  alt="OpenClaw Logo"
+                  className="h-6 w-6"
                 />
               ) : (
-                <img 
-                  src="/img/openclaw-logo.svg" 
-                  alt="OpenClaw Logo" 
-                  className="h-5 w-5 opacity-50"
+                <img
+                  src="/img/openclaw-logo.svg"
+                  alt="OpenClaw Logo"
+                  className="h-6 w-6 opacity-40"
                   style={{ filter: 'grayscale(100%)' }}
                 />
               )}
               <div>
-                <h3 className="font-semibold">{node.name || 'unknown'}</h3>
-                <p className="text-xs text-muted-foreground">{node.id}</p>
+                <h3 className="font-semibold text-base">{node.name || 'unknown'}</h3>
+                <p className="text-xs text-muted-foreground font-mono">{node.id}</p>
               </div>
             </div>
           </div>
@@ -71,22 +71,22 @@ export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, g
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <div>
+          <div className="bg-muted/30 rounded-lg p-2">
             <p className="text-xs text-muted-foreground mb-1">{t('nodes.clientIp')}</p>
-            <p className="text-sm">{node.clientIp || '-'}</p>
+            <p className="text-sm font-medium">{node.clientIp || '-'}</p>
           </div>
-          <div>
+          <div className="bg-muted/30 rounded-lg p-2">
             <p className="text-xs text-muted-foreground mb-1">{t('nodes.system')}</p>
             {node.system ? (
               <div className="flex items-center gap-1">
-                <Monitor className="h-3 w-3 text-muted-foreground" />
-                <span className="text-sm capitalize">{node.system}</span>
+                <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm font-medium capitalize">{node.system}</span>
               </div>
             ) : (
               <span className="text-sm text-muted-foreground">-</span>
             )}
           </div>
-          <div>
+          <div className="bg-muted/30 rounded-lg p-2">
             <p className="text-xs text-muted-foreground mb-1">Gateway</p>
             {node.connected ? (
               node.status?.openclawGateway ? (
@@ -100,38 +100,38 @@ export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, g
               </Badge>
             )}
           </div>
-          <div>
+          <div className="bg-muted/30 rounded-lg p-2">
             <p className="text-xs text-muted-foreground mb-1">{t('nodes.lastSeen')}</p>
-            <p className="text-sm">{formatLastSeen(node.lastSeen)}</p>
+            <p className="text-sm font-medium">{formatLastSeen(node.lastSeen)}</p>
           </div>
-          <div>
+          <div className="bg-muted/30 rounded-lg p-2">
             <p className="text-xs text-muted-foreground mb-1">{t('nodes.cpu')}</p>
             {node.connected && node.status?.cpu ? (
               <div className="flex items-center gap-1">
-                <Cpu className="h-3 w-3 text-muted-foreground" />
-                <span className="text-sm">{node.status.cpu.percent}%</span>
+                <Cpu className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm font-medium">{node.status.cpu.percent}%</span>
               </div>
             ) : (
               <span className="text-sm text-muted-foreground">-</span>
             )}
           </div>
-          <div>
+          <div className="bg-muted/30 rounded-lg p-2">
             <p className="text-xs text-muted-foreground mb-1">{t('nodes.memory')}</p>
             {node.connected && node.status?.memory ? (
               <div className="flex items-center gap-1">
-                <MemoryStick className="h-3 w-3 text-muted-foreground" />
-                <span className="text-sm">{node.status.memory.percent}%</span>
+                <MemoryStick className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm font-medium">{node.status.memory.percent}%</span>
               </div>
             ) : (
               <span className="text-sm text-muted-foreground">-</span>
             )}
           </div>
-          <div>
+          <div className="bg-muted/30 rounded-lg p-2 col-span-2">
             <p className="text-xs text-muted-foreground mb-1">{t('nodes.uptime')}</p>
             {node.connected && node.status?.uptime ? (
               <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3 text-muted-foreground" />
-                <span className="text-sm">{formatUptime(node.status.uptime)}</span>
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm font-medium">{formatUptime(node.status.uptime)}</span>
               </div>
             ) : (
               <span className="text-sm text-muted-foreground">-</span>

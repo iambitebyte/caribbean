@@ -307,13 +307,32 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
 
   if (error && !hasLoadedOnce) {
     return (
-      <div className="min-h-screen bg-background p-8">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-destructive mb-4">{t('errors.title')}</h1>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <p className="text-sm text-muted-foreground mb-4">{t('errors.retryMessage')}</p>
-            <Button onClick={loadData}>{t('errors.retry')}</Button>
+          <div className="text-center py-16">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 10 }}
+              className="mb-6"
+            >
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-destructive/20 rounded-full blur-xl animate-pulse" />
+                <AlertCircle className="h-24 w-24 text-destructive mx-auto relative" />
+              </div>
+            </motion.div>
+            <h1 className="text-3xl font-bold text-destructive mb-4">{t('errors.title')}</h1>
+            <p className="text-lg text-muted-foreground mb-4 max-w-md mx-auto">{error}</p>
+            <p className="text-sm text-muted-foreground mb-8">{t('errors.retryMessage')}</p>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button onClick={loadData} size="lg">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                {t('errors.retry')}
+              </Button>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -321,13 +340,22 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/img/caribbean-logo.png" alt="Caribbean" className="h-10 w-auto cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowLogoDialog(true)} />
-              <h1 className="text-2xl font-bold">{t('header.title')}</h1>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="cursor-pointer"
+                onClick={() => setShowLogoDialog(true)}
+              >
+                <img src="/img/caribbean-logo.png" alt="Caribbean" className="h-10 w-auto" />
+              </motion.div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                {t('header.title')}
+              </h1>
             </div>
             <div className="flex items-center gap-3">
               <LanguageSwitcher />
@@ -364,29 +392,30 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Show connection warning if refresh failed after initial load */}
         {error && hasLoadedOnce && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg"
+            className="mb-6 p-4 bg-[hsl(var(--warning))]/10 border border-[hsl(var(--warning))]/30 rounded-xl"
           >
-            <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
-              <span className="text-sm">⚠️ {error} - {t('errors.dataError')}</span>
+            <div className="flex items-center gap-2 text-[hsl(var(--warning))]">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm font-medium">{error} - {t('errors.dataError')}</span>
             </div>
           </motion.div>
         )}
 
         <div>
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-semibold">{t('nodes.title')}</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-semibold">{t('nodes.title')}</h2>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 bg-muted rounded-md p-1">
+              <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1.5 border">
                 <Button
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
-                  className="h-7 px-2"
+                  className="h-8 px-3"
                   onClick={() => setViewMode('list')}
                 >
                   <LayoutList className="h-4 w-4" />
@@ -394,24 +423,25 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                 <Button
                   variant={viewMode === 'card' ? 'default' : 'ghost'}
                   size="sm"
-                  className="h-7 px-2"
+                  className="h-8 px-3"
                   onClick={() => setViewMode('card')}
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </Button>
               </div>
               {selectedNodes.size > 0 && (
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-muted-foreground px-2 py-1 bg-muted/50 rounded-lg">
                   {t('batchActions.selected', { count: selectedNodes.size })}
                 </span>
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger
+                  disabled={selectedNodes.size === 0 || executing}
                   className={cn(
-                    "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium",
+                    "inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium shadow-sm hover:shadow-md transition-shadow",
                     "h-9 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90",
-                    "disabled:pointer-events-none disabled:opacity-50",
-                    executing && "opacity-50 pointer-events-none"
+                    "disabled:pointer-events-none disabled:opacity-50 disabled:hover:bg-primary",
+                    executing && "opacity-50"
                   )}
                 >
                   {executing ? t('batchActions.executing') : t('batchActions.executeAction')}
@@ -447,11 +477,20 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
           {/* First time loading */}
           {loading && !hasLoadedOnce && (
             <motion.div
-              className="text-center py-8 text-muted-foreground"
-              animate={{ opacity: 0.5 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+              className="text-center py-16 text-muted-foreground"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
             >
-              {t('nodes.loading')}
+              <div className="flex flex-col items-center gap-4">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <RefreshCw className="h-12 w-12 text-primary" />
+                </motion.div>
+                <p className="text-lg font-medium">{t('nodes.loading')}</p>
+              </div>
             </motion.div>
           )}
         </div>
@@ -459,26 +498,33 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
         {/* No nodes loaded yet */}
         {nodes.length === 0 && !loading && !hasLoadedOnce ? (
           <motion.div
-            className="rounded-lg overflow-hidden"
+            className="rounded-xl overflow-hidden"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="rounded-none">
-              <CardContent className="py-12">
+            <Card className="border-none shadow-lg">
+              <CardContent className="py-16">
                 <div className="text-center">
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", stiffness: 200, damping: 10 }}
-                    className="mb-4"
+                    className="mb-6"
                   >
-                    <Server className="h-16 w-16 text-muted-foreground mx-auto" />
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                      <Server className="h-20 w-20 text-muted-foreground mx-auto relative" />
+                    </div>
                   </motion.div>
-                  <p className="text-muted-foreground mb-4">{t('nodes.noInstances')}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <h3 className="text-xl font-semibold mb-3">{t('nodes.noInstances')}</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                     {t('nodes.startAgent')}
                   </p>
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <div className="h-2 w-2 bg-primary rounded-full animate-pulse" />
+                    <span>Waiting for connections...</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -486,18 +532,33 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
         ) : nodes.length === 0 ? (
           /* Loaded but no nodes */
           <motion.div
-            className="rounded-lg overflow-hidden"
+            className="rounded-xl overflow-hidden"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="rounded-none">
-              <CardContent className="py-12">
+            <Card className="border-none shadow-lg">
+              <CardContent className="py-16">
                 <div className="text-center">
-                  <p className="text-muted-foreground mb-2">{t('nodes.noInstancesDb')}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                    className="mb-6"
+                  >
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-muted/50 rounded-full blur-xl" />
+                      <Server className="h-20 w-20 text-muted-foreground mx-auto relative" />
+                    </div>
+                  </motion.div>
+                  <h3 className="text-xl font-semibold mb-3">{t('nodes.noInstancesDb')}</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                     {t('nodes.noInstancesServer')}
                   </p>
+                  <Button onClick={loadData} variant="outline">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    {t('header.refresh')}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -509,10 +570,11 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-xl"
               >
-                <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
-                  <span>⚠️ {t('nodes.allOffline')}</span>
+                <div className="flex items-center gap-3 text-destructive">
+                  <AlertCircle className="h-5 w-5" />
+                  <span className="text-sm font-medium">{t('nodes.allOffline')}</span>
                 </div>
               </motion.div>
             )}
@@ -733,28 +795,32 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                  initial={{ opacity: 0 }}
                  animate={{ opacity: 1 }}
                  exit={{ opacity: 0 }}
-                 className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                 className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
                  onClick={() => setShowDeleteDialog(false)}
                >
                  <motion.div
-                   initial={{ opacity: 0, scale: 0.95 }}
-                   animate={{ opacity: 1, scale: 1 }}
-                   exit={{ opacity: 0, scale: 0.95 }}
+                   initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                   animate={{ opacity: 1, scale: 1, y: 0 }}
+                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
                    onClick={(e) => e.stopPropagation()}
-                   className="bg-card rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
+                   className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full border"
                  >
-                   <div className="flex items-center gap-3 mb-4">
-                     <AlertCircle className="h-6 w-6 text-destructive" />
-                     <h3 className="text-lg font-semibold">{t('batchActions.deleteConfirmTitle')}</h3>
+                   <div className="flex items-center gap-4 mb-6">
+                     <div className="flex-shrink-0">
+                       <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                         <AlertCircle className="h-6 w-6 text-destructive" />
+                       </div>
+                     </div>
+                     <h3 className="text-xl font-semibold">{t('batchActions.deleteConfirmTitle')}</h3>
                    </div>
-                   <p className="text-muted-foreground mb-6">
+                   <p className="text-muted-foreground mb-8">
                      {t('batchActions.deleteConfirmMessage', { count: selectedNodes.size })}
                    </p>
                    <div className="flex gap-3 justify-end">
-                     <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+                     <Button variant="outline" onClick={() => setShowDeleteDialog(false)} size="lg">
                        {t('batchActions.cancel')}
                      </Button>
-                     <Button variant="destructive" onClick={handleDeleteNodes} disabled={executing}>
+                     <Button variant="destructive" onClick={handleDeleteNodes} disabled={executing} size="lg">
                        {executing ? t('batchActions.executing') : t('batchActions.delete')}
                      </Button>
                    </div>
@@ -769,28 +835,32 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
                 onClick={() => setShowAuthErrorDialog(false)}
               >
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-card rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
+                  className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full border"
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <AlertCircle className="h-6 w-6 text-destructive" />
-                    <h3 className="text-lg font-semibold">需要登录</h3>
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="flex-shrink-0">
+                      <div className="h-12 w-12 rounded-full bg-[hsl(var(--warning))]/10 flex items-center justify-center">
+                        <AlertCircle className="h-6 w-6 text-[hsl(var(--warning))]" />
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-semibold">需要登录</h3>
                   </div>
-                  <p className="text-muted-foreground mb-6">
+                  <p className="text-muted-foreground mb-8">
                     您的会话已过期，请重新登录以继续访问。
                   </p>
                   <div className="flex gap-3 justify-end">
-                    <Button variant="outline" onClick={() => setShowAuthErrorDialog(false)}>
+                    <Button variant="outline" onClick={() => setShowAuthErrorDialog(false)} size="lg">
                       取消
                     </Button>
-                    <Button onClick={handleAuthErrorConfirm}>
+                    <Button onClick={handleAuthErrorConfirm} size="lg">
                       前往登录
                     </Button>
                   </div>
