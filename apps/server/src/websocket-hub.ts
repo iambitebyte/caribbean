@@ -2,6 +2,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import { NodeManager } from './node-manager.js';
 import { DatabaseManager } from './database.js';
+import { NotificationService } from './notification-service.js';
 import type { Message, CommandMessage, ConnectMessage, ConnectedMessage, HeartbeatMessage, AckMessage, ResultMessage } from '@openclaw-caribbean/protocol';
 
 export interface WebSocketServerConfig {
@@ -19,10 +20,11 @@ export class WebSocketHub {
   private clients: Map<string, WebSocket> = new Map();
   private onNodeUpdate?: (nodeId: string) => Promise<void>;
   private commandResults: Map<string, { success: boolean; error?: string; data?: unknown; timestamp: string }> = new Map();
+  private notificationService: NotificationService | null = null;
 
   constructor(
-    config: WebSocketServerConfig, 
-    nodeManager: NodeManager, 
+    config: WebSocketServerConfig,
+    nodeManager: NodeManager,
     database: DatabaseManager | null,
     onNodeUpdate?: (nodeId: string) => Promise<void>
   ) {
@@ -30,6 +32,11 @@ export class WebSocketHub {
     this.nodeManager = nodeManager;
     this.database = database;
     this.onNodeUpdate = onNodeUpdate;
+
+    // Initialize notification service if database is available
+    if (database) {
+      this.notificationService = new NotificationService(database, this);
+    }
   }
 
   start(): Promise<void> {
@@ -79,6 +86,11 @@ export class WebSocketHub {
           if (nodeId) {
             this.nodeManager.disconnectNode(nodeId, 'Connection closed');
             this.clients.delete(nodeId);
+
+            // Clean up notification service tracking
+            if (this.notificationService) {
+              this.notificationService.removeNodeStatus(nodeId);
+            }
 
             if (this.database) {
               this.database.updateNodeDisconnected(nodeId).catch(err => {
@@ -178,6 +190,9 @@ export class WebSocketHub {
     };
     this.sendToNode(actualNodeId, connected);
 
+    // Initialize notification service with current gateway status (if available in heartbeat)
+    // This will be updated on first heartbeat
+
     // Trigger database sync - only update connected status if node exists
     if (this.database) {
       if (existingNode) {
@@ -199,6 +214,23 @@ export class WebSocketHub {
 
   private handleHeartbeat(message: HeartbeatMessage): void {
     const { nodeId, status } = message.payload;
+    const node = this.nodeManager.getNode(nodeId);
+
+    // Get the current gateway status
+    const currentGatewayStatus = this.getGatewayStatus(status);
+
+    // Check for status changes and send notifications
+    if (this.notificationService && node) {
+      this.notificationService.checkAndNotify(
+        nodeId,
+        node.name,
+        currentGatewayStatus,
+        this.nodeManager.getConnectedNodes()
+      ).catch(err => {
+        console.error('[Server] Failed to check and send notifications:', err);
+      });
+    }
+
     this.nodeManager.updateNodeStatus(nodeId, status);
 
     // Trigger immediate database sync on heartbeat
@@ -207,6 +239,17 @@ export class WebSocketHub {
         console.error('[Server] Failed to sync node to database:', err);
       });
     }
+  }
+
+  private getGatewayStatus(status: any): string {
+    if (!status) return 'unknown';
+    if (typeof status.openclawGateway === 'string') {
+      return status.openclawGateway;
+    }
+    if (status.openclawGateway?.status) {
+      return status.openclawGateway.status;
+    }
+    return 'unknown';
   }
 
   private handleAck(message: AckMessage): void {
