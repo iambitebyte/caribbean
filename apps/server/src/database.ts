@@ -3,6 +3,9 @@ import type { NodeInfo, Notification, CreateNotificationDto } from '@openclaw-ca
 import { existsSync, mkdirSync, readFileSync, readdirSync } from 'fs';
 import { dirname, join } from 'path';
 import sqlite3 from 'sqlite3';
+import { createLogger } from '@openclaw-caribbean/shared';
+
+const logger = createLogger('Database');
 
 export interface DatabaseConfig {
   type: 'sqlite' | 'postgresql';
@@ -109,13 +112,13 @@ export class DatabaseManager {
       );
 
       if (!executed) {
-        console.log(`[Database] Running migration: ${migration.name}`);
+        logger.startup(`Running migration: ${migration.name}`);
         await this.db.exec(migration.up);
         await this.db.run(
           `INSERT INTO migrations (version, name) VALUES (?, ?)`,
           [migration.version, migration.name]
         );
-        console.log(`[Database] Migration completed: ${migration.name}`);
+        logger.startup(`Migration completed: ${migration.name}`);
       }
     }
   }
@@ -171,7 +174,7 @@ export class DatabaseManager {
       )
     `);
 
-    console.log('[Database] History cleaned - keeping only last 5 records per node');
+    logger.debug('History cleaned - keeping only last 5 records per node');
   }
 
   async saveNode(node: NodeInfo): Promise<void> {

@@ -520,9 +520,18 @@ export function NotificationSettings() {
                 <textarea
                   value={testMessage}
                   onChange={(e) => setTestMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault()
+                      if (testMessage.trim() && !sendingTest) {
+                        handleSendTestMessage()
+                      }
+                    }
+                  }}
                   className="w-full px-3 py-2 border rounded-md bg-background min-h-[80px]"
                   placeholder={t('settings.notifications.testMessagePlaceholder')}
                 />
+                <p className="text-xs text-muted-foreground mt-1">Ctrl+Enter 或 Cmd+Enter 快速发送</p>
               </div>
               <div className="flex gap-3 justify-end">
                 <Button variant="outline" onClick={() => setInstanceTestDialog(null)} disabled={sendingTest}>

@@ -2,6 +2,9 @@ import { NodeManager } from './node-manager.js';
 import { WebSocketHub } from './websocket-hub.js';
 import { ApiServer } from './api.js';
 import { DatabaseManager } from './database.js';
+import { createLogger, setDebugMode } from '@openclaw-caribbean/shared';
+
+const logger = createLogger('Server');
 
 export interface ServerConfig {
   websocket: {
@@ -41,6 +44,7 @@ export class CaribbeanServer {
   constructor(config: ServerConfig, debug: boolean = false) {
     this.config = config;
     this.debug = debug;
+    setDebugMode(debug);
     this.nodeManager = new NodeManager();
 
     // Create database first, before WebSocketHub (needed for notification service)
@@ -133,11 +137,11 @@ export class CaribbeanServer {
   }
 
   async start(): Promise<void> {
-    console.log('[Server] Starting Caribbean Server...');
+    logger.startup('Starting Caribbean Server...');
 
     if (this.database) {
       await this.database.connect();
-      console.log('[Server] Database connected');
+      logger.startup('Database connected');
     }
 
     await this.websocketHub.start();
@@ -146,8 +150,8 @@ export class CaribbeanServer {
       await this.apiServer.start();
     }
 
-    console.log('[Server] Caribbean Server is running');
-    console.log(`[Server] WebSocket: ws://0.0.0.0:${this.config.websocket.port}${this.config.websocket.path}`);
+    logger.startup('Caribbean Server is running');
+    logger.startup(`WebSocket: ws://0.0.0.0:${this.config.websocket.port}${this.config.websocket.path}`);
 
     setInterval(() => {
       this.logStatus();
@@ -155,7 +159,7 @@ export class CaribbeanServer {
   }
 
   stop(): void {
-    console.log('[Server] Stopping Caribbean Server...');
+    logger.startup('Stopping Caribbean Server...');
 
     this.websocketHub.stop();
     if (this.apiServer) {
@@ -181,6 +185,6 @@ export class CaribbeanServer {
   private logStatus(): void {
     const total = this.nodeManager.getNodeCount();
     const connected = this.nodeManager.getConnectedCount();
-    console.log(`[Server] Status: ${connected}/${total} nodes connected`);
+    logger.debug(`Status: ${connected}/${total} nodes connected`);
   }
 }

@@ -1,115 +1,119 @@
 #!/bin/bash
 set -e
 
-# Caribbean Release Script using Changesets
-# This script handles version bumping, building, and publishing
+# Caribbean Release Script
+# Usage: ./release.sh [major|minor|patch] (default: patch)
 
 SCOPE="@openclaw-caribbean"
-PUBLISHED_PACKAGES=("shared" "protocol" "server" "agent")
+PACKAGES=("packages/shared" "packages/protocol" "apps/server" "apps/agent")
 
-echo "🌴 Caribbean Release Workflow"
-echo "================================"
+# Parse arguments
+BUMP_TYPE=${1:-patch}
+case $BUMP_TYPE in
+  major|minor|patch)
+    ;;
+  *)
+    echo "❌ Invalid bump type: $BUMP_TYPE"
+    echo "Usage: $0 [major|minor|patch]"
+    echo "  major - x.0.0 (breaking changes)"
+    echo "  minor - x.y.0 (new features)"
+    echo "  patch - x.y.z (bug fixes, default)"
+    exit 1
+    ;;
+esac
+
+echo "🌴 Caribbean Release - $BUMP_TYPE bump"
+echo "======================================"
 echo ""
 
-# Check if there are changesets to consume
-if [ -z "$(ls .changeset/*.md 2>/dev/null | grep -v README)" ]; then
-  echo "❌ No changesets found. Create one first with:"
-  echo "   pnpm changeset"
+# Get current version from first package
+CURRENT_VERSION=$(jq -r .version packages/shared/package.json)
+echo "📍 Current version: $CURRENT_VERSION"
+echo ""
+
+# Calculate new version
+IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+case $BUMP_TYPE in
+  major)
+    NEW_VERSION="$((MAJOR + 1)).0.0"
+    ;;
+  minor)
+    NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
+    ;;
+  patch)
+    NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+    ;;
+esac
+
+echo "🚀 New version: $NEW_VERSION"
+echo ""
+read -p "Continue? (y/n) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  echo "❌ Aborted"
   exit 1
 fi
-
-echo "📋 Current changesets:"
-ls -1 .changeset/*.md 2>/dev/null | grep -v README | while read f; do
-  echo "  - $(basename "$f")"
-done
 echo ""
 
-# Step 1: Update versions based on changesets
-echo "📝 Step 1: Updating package versions..."
-pnpm changeset version
+# Step 1: Bump versions
+echo "📝 Step 1: Updating versions to $NEW_VERSION..."
+for pkg in "${PACKAGES[@]}"; do
+  echo "  $pkg"
+  jq --arg v "$NEW_VERSION" '.version = $v' "$pkg/package.json" > tmp.json && mv tmp.json "$pkg/package.json"
+done
 echo "✅ Versions updated"
 echo ""
 
-# Step 2: Show version changes
-echo "📊 Version changes:"
-git diff --stat package.json apps/*/package.json packages/*/package.json | grep -E "version|package.json" || true
-echo ""
-
-# Optional: Ask if user wants to review changes
-read -p "🔍 Review changes? (y/n) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  git diff package.json apps/*/package.json packages/*/package.json
-  echo ""
-  read -p "Continue? (y/n) " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "❌ Aborted"
-    exit 1
-  fi
-fi
-
-# Step 3: Build all packages in order
+# Step 2: Build in dependency order
 echo "📦 Step 2: Building packages..."
 
-echo "  [1/5] Building @openclaw-caribbean/shared..."
+echo "  [1/5] Building shared..."
 cd packages/shared && pnpm run build && cd - > /dev/null
 
-echo "  [2/5] Building @openclaw-caribbean/protocol..."
+echo "  [2/5] Building protocol..."
 cd packages/protocol && pnpm run build && cd - > /dev/null
 
-echo "  [3/5] Building web dashboard..."
+echo "  [3/5] Building web..."
 cd apps/web && pnpm run build && cd - > /dev/null
 
-echo "  [4/5] Embedding web into server..."
+echo "  [4/5] Copying web to server..."
 rm -rf apps/server/dist/web
 mkdir -p apps/server/dist/web
 cp -r apps/web/dist/* apps/server/dist/web/
 
-echo "  [5/5] Building @openclaw-caribbean/server..."
+echo "  [5/5] Building server..."
 cd apps/server && pnpm run build && cd - > /dev/null
 
-echo "  [6/6] Building @openclaw-caribbean/agent..."
+echo "  [6/6] Building agent..."
 cd apps/agent && pnpm run build && cd - > /dev/null
 
 echo "✅ Build complete"
 echo ""
 
-# Step 4: Publish to npm
+# Step 3: Publish to npm
 echo "📤 Step 3: Publishing to npm..."
-echo "Packages to publish:"
-for pkg in "${PUBLISHED_PACKAGES[@]}"; do
-  if [ "$pkg" = "shared" ] || [ "$pkg" = "protocol" ]; then
-    echo "  - packages/$pkg"
-  else
-    echo "  - apps/$pkg"
-  fi
+for pkg in "${PACKAGES[@]}"; do
+  echo "  Publishing $pkg..."
+  cd "$pkg"
+  pnpm publish --access public --no-git-checks
+  cd - > /dev/null
 done
-echo ""
-
-pnpm changeset publish
 echo "✅ Published to npm"
 echo ""
 
-# Step 5: Cleanup consumed changesets
-echo "🧹 Step 4: Cleaning up..."
-echo "Consumed changeset files will be removed on next commit"
-echo ""
-
 # Summary
-echo "================================"
+echo "======================================"
 echo "✅ Release complete!"
 echo ""
-echo "Next steps:"
-echo "  1. Review changes: git diff"
-echo "  2. Commit changes: git add . && git commit -m 'chore: release X.Y.Z'"
-echo "  3. Push to GitHub: git push"
-echo ""
 echo "Published packages:"
-for pkg in "${PUBLISHED_PACKAGES[@]}"; do
-  version=$(node -e "console.log(require('./$(echo "$pkg" | sed 's|shared|packages/shared|;s|protocol|packages/protocol|;s|server|apps/server|;s|agent|apps/agent|')/package.json').version)")
-  echo "  $SCOPE/$pkg@$version"
+for pkg in shared protocol server agent; do
+  echo "  $SCOPE/$pkg@$NEW_VERSION"
 done
 echo ""
+echo "Next steps:"
+echo "  1. Commit changes: git add . && git commit -m 'chore: release $NEW_VERSION'"
+echo "  2. Add git tag: git tag v$NEW_VERSION"
+echo "  3. Push: git push && git push --tags"
+echo ""
 echo "Install on server:"
-echo "  npm install -g $SCOPE/server@latest $SCOPE/agent@latest"
+echo "  npm install -g $SCOPE/server@$NEW_VERSION $SCOPE/agent@$NEW_VERSION"

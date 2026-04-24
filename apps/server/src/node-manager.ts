@@ -1,5 +1,8 @@
 import type { NodeInfo, NodeStatus } from '@openclaw-caribbean/shared';
 import { randomUUID } from 'crypto';
+import { createLogger } from '@openclaw-caribbean/shared';
+
+const logger = createLogger('Server');
 
 export class NodeManager {
   private nodes: Map<string, NodeInfo> = new Map();
@@ -18,7 +21,7 @@ export class NodeManager {
       existingNode.lastSeen = new Date();
       existingNode.clientIp = clientIp || existingNode.clientIp;
       if (system) existingNode.system = system;
-      console.log(`[Server] Node reconnected: ${existingNode.name} (${nodeId})`);
+      logger.debug(`Node reconnected: ${existingNode.name} (${nodeId})`);
     } else {
       const node: NodeInfo = {
         id: nodeId,
@@ -30,7 +33,7 @@ export class NodeManager {
         system
       };
       this.nodes.set(nodeId, node);
-      console.log(`[Server] Node registered: ${name} (${nodeId})`);
+      logger.info(`Node registered: ${name} (${nodeId})`);
     }
   }
 
@@ -48,7 +51,7 @@ export class NodeManager {
     if (node) {
       node.connected = false;
       node.openclawStatus = 'unknown';
-      console.log(`[Server] Node disconnected: ${node.name} (${nodeId}) - ${reason}`);
+      logger.debug(`Node disconnected: ${node.name} (${nodeId}) - ${reason}`);
     }
   }
 
@@ -57,7 +60,7 @@ export class NodeManager {
     if (node) {
       this.nodes.delete(nodeId);
       this.nodeStatus.delete(nodeId);
-      console.log(`[Server] Node removed: ${node.name} (${nodeId})`);
+      logger.debug(`Node removed: ${node.name} (${nodeId})`);
     }
   }
 

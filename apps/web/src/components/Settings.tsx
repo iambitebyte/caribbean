@@ -43,6 +43,7 @@ export default function Settings() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [showAgentToken, setShowAgentToken] = useState(false)
+  const [activeTab, setActiveTab] = useState('security')
 
   useEffect(() => {
     loadSettings()
@@ -171,13 +172,7 @@ export default function Settings() {
               <SettingsIcon className="h-5 w-5" />
               <h1 className="text-xl font-semibold">{t('settings.title')}</h1>
             </div>
-            <div className="flex items-center gap-3">
-              <LanguageSwitcher />
-              <Button onClick={handleSave} disabled={saving}>
-                <Save className="h-4 w-4 mr-2" />
-                {saving ? t('settings.saving') : t('settings.save')}
-              </Button>
-            </div>
+            <LanguageSwitcher />
           </div>
         </div>
       </header>
@@ -207,7 +202,7 @@ export default function Settings() {
             </motion.div>
           )}
 
-          <Tabs defaultValue="security">
+          <Tabs defaultValue="security" value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="security">{t('settings.tabs.security')}</TabsTrigger>
               <TabsTrigger value="notifications">{t('settings.tabs.notifications')}</TabsTrigger>
@@ -329,6 +324,13 @@ export default function Settings() {
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="flex justify-end">
+                <Button onClick={handleSave} disabled={saving}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving ? t('settings.saving') : t('settings.save')}
+                </Button>
+              </div>
             </TabsContent>
 
             <TabsContent value="notifications">

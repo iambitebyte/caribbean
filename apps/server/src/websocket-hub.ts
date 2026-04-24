@@ -4,6 +4,9 @@ import { NodeManager } from './node-manager.js';
 import { DatabaseManager } from './database.js';
 import { NotificationService } from './notification-service.js';
 import type { Message, CommandMessage, ConnectMessage, ConnectedMessage, HeartbeatMessage, AckMessage, ResultMessage } from '@openclaw-caribbean/protocol';
+import { createLogger } from '@openclaw-caribbean/shared';
+
+const logger = createLogger('Server');
 
 export interface WebSocketServerConfig {
   port: number;
@@ -59,20 +62,20 @@ export class WebSocketHub {
         if (this.config.authToken) {
           const authHeader = req.headers['authorization'];
           if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            console.log(`[Server] Rejecting connection: missing or invalid authorization header`);
+            logger.debug(`Rejecting connection: missing or invalid authorization header`);
             ws.close(1008, 'Unauthorized');
             return;
           }
 
           const token = authHeader.substring(7);
           if (token !== this.config.authToken) {
-            console.log(`[Server] Rejecting connection: invalid token`);
+            logger.debug(`Rejecting connection: invalid token`);
             ws.close(1008, 'Unauthorized');
             return;
           }
         }
 
-        console.log(`[Server] New connection from ${req.socket.remoteAddress}`);
+        logger.info(`New connection from ${req.socket.remoteAddress}`);
 
         let nodeId: string | null = null;
 
@@ -81,7 +84,7 @@ export class WebSocketHub {
             const message: Message = JSON.parse(data.toString());
             this.handleMessage(ws, message, (id) => { nodeId = id; });
           } catch (error) {
-            console.error('[Server] Failed to parse message:', error);
+            logger.error('[Server] Failed to parse message:', error);
           }
         });
 
@@ -97,30 +100,30 @@ export class WebSocketHub {
 
             if (this.database) {
               this.database.updateNodeDisconnected(nodeId).catch(err => {
-                console.error('[Server] Failed to update node disconnected status:', err);
+                logger.error('[Server] Failed to update node disconnected status:', err);
               });
             }
 
             if (this.onNodeUpdate) {
               this.onNodeUpdate(nodeId).catch(err => {
-                console.error('[Server] Failed to sync node disconnect to database:', err);
+                logger.error('[Server] Failed to sync node disconnect to database:', err);
               });
             }
           }
         });
 
         ws.on('error', (error) => {
-          console.error('[Server] WebSocket error:', error);
+          logger.error('[Server] WebSocket error:', error);
         });
       });
 
       this.wss.on('listening', () => {
-        console.log(`[Server] WebSocket server listening on ws://0.0.0.0:${this.config.port}${this.config.path}`);
+        logger.debug(`[Server] WebSocket server listening on ws://0.0.0.0:${this.config.port}${this.config.path}`);
         resolve();
       });
 
       this.wss.on('error', (error) => {
-        console.error('[Server] WebSocket server error:', error);
+        logger.error('[Server] WebSocket server error:', error);
       });
     });
   }
@@ -137,7 +140,7 @@ export class WebSocketHub {
     message: Message,
     setNodeId: (id: string) => void
   ): void {
-    console.log(`[Server] Received message: ${message.type}`);
+    logger.debug(`[Server] Received message: ${message.type}`);
 
     switch (message.type) {
       case 'connect':
@@ -153,7 +156,7 @@ export class WebSocketHub {
         this.handleResult(message as ResultMessage);
         break;
       default:
-        console.log(`[Server] Unknown message type: ${message.type}`);
+        logger.debug(`[Server] Unknown message type: ${message.type}`);
     }
   }
 
@@ -210,7 +213,7 @@ export class WebSocketHub {
 
     if (this.onNodeUpdate) {
       this.onNodeUpdate(actualNodeId).catch(err => {
-        console.error('[Server] Failed to sync node to database:', err);
+        logger.error('[Server] Failed to sync node to database:', err);
       });
     }
   }
@@ -230,7 +233,7 @@ export class WebSocketHub {
         currentGatewayStatus,
         this.nodeManager.getConnectedNodes()
       ).catch(err => {
-        console.error('[Server] Failed to check and send notifications:', err);
+        logger.error('[Server] Failed to check and send notifications:', err);
       });
     }
 
@@ -239,7 +242,7 @@ export class WebSocketHub {
     // Trigger immediate database sync on heartbeat
     if (this.onNodeUpdate) {
       this.onNodeUpdate(nodeId).catch(err => {
-        console.error('[Server] Failed to sync node to database:', err);
+        logger.error('[Server] Failed to sync node to database:', err);
       });
     }
   }
@@ -256,14 +259,14 @@ export class WebSocketHub {
   }
 
   private handleAck(message: AckMessage): void {
-    console.log(`[Server] ACK received: ${message.id} - ${message.success ? 'success' : 'failed'}`);
+    logger.debug(`[Server] ACK received: ${message.id} - ${message.success ? 'success' : 'failed'}`);
     if (!message.success && message.error) {
-      console.error(`[Server] Error: ${message.error}`);
+      logger.error(`[Server] Error: ${message.error}`);
     }
   }
 
   private handleResult(message: ResultMessage): void {
-    console.log(`[Server] Result received: ${message.id} - ${message.success ? 'success' : 'failed'}`);
+    logger.debug(`[Server] Result received: ${message.id} - ${message.success ? 'success' : 'failed'}`);
     this.commandResults.set(message.id, {
       success: message.success,
       error: message.error,
@@ -271,7 +274,7 @@ export class WebSocketHub {
       timestamp: message.timestamp
     });
     if (!message.success && message.error) {
-      console.error(`[Server] Error: ${message.error}`);
+      logger.error(`[Server] Error: ${message.error}`);
     }
   }
 
@@ -290,7 +293,7 @@ export class WebSocketHub {
     }
 
     ws.send(JSON.stringify(command));
-    console.log(`[Server] Command sent to ${nodeId}: ${action}`);
+    logger.debug(`[Server] Command sent to ${nodeId}: ${action}`);
     return command.id;
   }
 

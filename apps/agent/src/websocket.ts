@@ -5,6 +5,9 @@ import type { NodeStatus } from '@openclaw-caribbean/shared';
 import os from 'os';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { createLogger, isDebugMode } from '@openclaw-caribbean/shared';
+
+const logger = createLogger('Agent');
 
 export interface WebSocketClientConfig {
   url: string;
@@ -23,12 +26,11 @@ export class WebSocketClient {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private statusCollector: () => NodeStatus;
-  private debug: boolean;
 
   constructor(
     config: WebSocketClientConfig,
     statusCollector: () => NodeStatus,
-    debug: boolean = false
+    _debug: boolean = false
   ) {
     this.config = {
       url: config.url,
@@ -41,11 +43,10 @@ export class WebSocketClient {
       authToken: config.authToken || ''
     };
     this.statusCollector = statusCollector;
-    this.debug = debug;
   }
 
   private debugLog(...args: unknown[]): void {
-    if (this.debug) {
+    if (isDebugMode()) {
       console.log('[Agent] [DEBUG]', ...args);
     }
   }
@@ -99,8 +100,8 @@ export class WebSocketClient {
         this.debugLog('Parsed message timestamp:', message.timestamp);
         this.handleMessage(message);
       } catch (error) {
-        console.error('[Agent] [DEBUG] Failed to parse message');
-        console.error('[Agent] [DEBUG] Parse error:', error);
+        logger.error('Failed to parse message');
+        logger.error('Parse error:', error);
       }
     });
 
@@ -119,7 +120,7 @@ export class WebSocketClient {
       this.debugLog('Close reason:', reason.toString());
       this.debugLog('Close code meaning:', this.getCloseCodeMeaning(code));
       this.debugLog('Current readyState:', this.getReadyStateName(this.ws?.readyState || 0));
-      console.log('[Agent] Disconnected');
+      logger.debug('Disconnected');
       this.stopHeartbeat();
       this.scheduleReconnect();
     });
@@ -176,7 +177,7 @@ export class WebSocketClient {
   }
 
   private sendImmediateHeartbeat(): void {
-    console.log('[Agent] Sending immediate heartbeat with openclaw status check');
+    logger.debug('Sending immediate heartbeat with openclaw status check');
     this.sendHeartbeat();
   }
 
@@ -193,7 +194,7 @@ export class WebSocketClient {
     this.debugLog('Will reconnect to:', this.config.url);
     this.stopReconnect();
     this.reconnectTimer = setTimeout(() => {
-      console.log('[Agent] Attempting to reconnect...');
+      logger.debug('Attempting to reconnect...');
       this.connect();
     }, this.config.reconnectInterval);
     this.debugLog('Reconnect timer set');
@@ -338,51 +339,51 @@ export class WebSocketClient {
   private async executeCommand(action: string, params: Record<string, unknown>): Promise<unknown> {
     switch (action) {
       case 'restart_agent':
-        console.log('[Agent] Restarting agent:', params);
+        logger.debug('Restarting agent:', params);
         return { message: 'Restart command received' };
       case 'update_config':
-        console.log('[Agent] Updating config:', params);
+        logger.debug('Updating config:', params);
         return { message: 'Update config command received' };
       case 'openclaw_gateway_start':
-        console.log('[Agent] Starting OpenClaw gateway...');
+        logger.startup('Starting OpenClaw gateway...');
         execSync('openclaw gateway start', { timeout: 30000 });
-        console.log('[Agent] OpenClaw gateway started successfully');
+        logger.startup('OpenClaw gateway started successfully');
         this.sendHeartbeat();
         return { message: 'Gateway started successfully' };
       case 'openclaw_gateway_stop':
-        console.log('[Agent] Stopping OpenClaw gateway...');
+        logger.startup('Stopping OpenClaw gateway...');
         execSync('openclaw gateway stop', { timeout: 30000 });
-        console.log('[Agent] OpenClaw gateway stopped successfully');
+        logger.startup('OpenClaw gateway stopped successfully');
         this.sendHeartbeat();
         return { message: 'Gateway stopped successfully' };
       case 'read_config':
-        console.log('[Agent] Reading openclaw.json config...');
+        logger.debug('Reading openclaw.json config...');
         const configPath = join(process.env.HOME || '', '.openclaw', 'openclaw.json');
         if (!existsSync(configPath)) {
           throw new Error('Config file not found');
         }
         const configContent = readFileSync(configPath, 'utf-8');
         const config = JSON.parse(configContent);
-        console.log('[Agent] Config read successfully');
+        logger.debug('Config read successfully');
         return { config };
       case 'read_logs':
-        console.log('[Agent] Reading openclaw logs...');
+        logger.debug('Reading openclaw logs...');
         const logs = execSync('openclaw logs | tail -n 20', { encoding: 'utf-8', timeout: 5000 });
-        console.log('[Agent] Logs read successfully');
+        logger.debug('Logs read successfully');
         return { logs: logs.trim() };
       case 'gateway_health_check':
-        console.log('[Agent] Running gateway health check...');
+        logger.debug('Running gateway health check...');
         const healthOutput = execSync('openclaw gateway call health', { encoding: 'utf-8', timeout: 10000 });
         const healthJsonMatch = healthOutput.match(/\{[\s\S]*\}/);
         if (!healthJsonMatch) {
           throw new Error('No JSON found in health response');
         }
         const healthData = JSON.parse(healthJsonMatch[0]);
-        console.log('[Agent] Health check completed, ok:', healthData.ok);
+        logger.debug('Health check completed, ok:', healthData.ok);
         this.sendHeartbeat();
         return { health: healthData };
       case 'message':
-        console.log('[Agent] Sending message via OpenClaw...');
+        logger.debug('Sending message via OpenClaw...');
         const channel = params.channel as string;
         const target = params.target as string;
         const message = params.message as string;
@@ -391,13 +392,13 @@ export class WebSocketClient {
           throw new Error('Missing required parameters: channel, target, message');
         }
 
-        console.log(`[Agent] Sending message to ${target} via ${channel}: "${message}"`);
+        logger.debug(`Sending message to ${target} via ${channel}: "${message}"`);
         const messageOutput = execSync(
           `openclaw message send --channel ${channel} --target ${target} --message "${message}"`,
           { encoding: 'utf-8', timeout: 30000 }
         );
-        console.log('[Agent] Message sent successfully');
-        console.log('[Agent] Output:', messageOutput.trim());
+        logger.debug('Message sent successfully');
+        logger.debug('Output:', messageOutput.trim());
         return { success: true, output: messageOutput.trim() };
       default:
         throw new Error(`Unknown command: ${action}`);

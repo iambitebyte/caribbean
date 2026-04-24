@@ -7,6 +7,9 @@ import { homedir } from 'os';
 import { createRequire } from 'module';
 import type { NodeInfo, Notification, CreateNotificationDto } from '@openclaw-caribbean/shared';
 import { verifyToken, generateToken } from './auth.js';
+import { createLogger } from '@openclaw-caribbean/shared';
+
+const logger = createLogger('API');
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
@@ -183,7 +186,7 @@ export class ApiServer {
         }
         return result;
       } catch (error) {
-        console.error('Failed to update settings:', error);
+        logger.error('Failed to update settings:', error);
         reply.code(500).send({ error: 'Failed to update settings' });
       }
     });
@@ -386,7 +389,7 @@ export class ApiServer {
           count: notificationsWithNodes.length
         };
       } catch (error) {
-        console.error('Failed to fetch notifications:', error);
+        logger.error('Failed to fetch notifications:', error);
         return { notifications: [], count: 0, error: 'Failed to fetch notifications' };
       }
     });
@@ -448,7 +451,7 @@ export class ApiServer {
           }
         };
       } catch (error) {
-        console.error('Failed to create notification:', error);
+        logger.error('Failed to create notification:', error);
         reply.code(500).send({ error: 'Failed to create notification' });
       }
     });
@@ -489,7 +492,7 @@ export class ApiServer {
           }
         };
       } catch (error) {
-        console.error('Failed to update notification:', error);
+        logger.error('Failed to update notification:', error);
         reply.code(500).send({ error: 'Failed to update notification' });
       }
     });
@@ -506,7 +509,7 @@ export class ApiServer {
         await this.deleteNotification(id);
         reply.send({ success: true, notificationId: id });
       } catch (error) {
-        console.error('Failed to delete notification:', error);
+        logger.error('Failed to delete notification:', error);
         reply.code(500).send({ error: 'Failed to delete notification' });
       }
     });
@@ -528,14 +531,14 @@ export class ApiServer {
 
         // TODO: Implement actual notification sending logic
         // For now, return success as a placeholder
-        console.log('[Notification] Test notification would be sent:', notification);
+        logger.debug('Test notification would be sent:', notification);
 
         return {
           success: true,
           message: 'Test notification sent (placeholder - implement actual sending logic)'
         };
       } catch (error) {
-        console.error('Failed to test notification:', error);
+        logger.error('Failed to test notification:', error);
         reply.code(500).send({ error: 'Failed to test notification' });
       }
     });
@@ -587,12 +590,12 @@ export class ApiServer {
       port: this.config.port,
       host: this.config.host
     });
-    console.log(`[API] REST API listening on http://${this.config.host}:${this.config.port}`);
-    
+    logger.startup(`REST API listening on http://${this.config.host}:${this.config.port}`);
+
     if (this.config.webDistPath) {
       const indexPath = join(this.config.webDistPath, 'index.html');
       if (existsSync(indexPath)) {
-        console.log(`[API] Web UI available at http://${this.config.host}:${this.config.port}`);
+        logger.startup(`Web UI available at http://${this.config.host}:${this.config.port}`);
       }
     }
   }
@@ -606,7 +609,7 @@ export class ApiServer {
       const configContent = readFileSync(CONFIG_PATH, 'utf-8');
       return JSON.parse(configContent);
     } catch (error) {
-      console.error('Failed to read config:', error);
+      logger.error('Failed to read config:', error);
       return null;
     }
   }

@@ -1,6 +1,9 @@
 import { randomUUID } from 'crypto';
 import { WebSocketClient } from './websocket.js';
 import { StatusCollector } from './collector.js';
+import { createLogger, setDebugMode } from '@openclaw-caribbean/shared';
+
+const logger = createLogger('Agent');
 
 export interface AgentConfig {
   server: {
@@ -30,6 +33,7 @@ export class Agent {
   constructor(config: AgentConfig, debug: boolean = false) {
     this.nodeId = config.node.id || randomUUID();
     this.collector = new StatusCollector();
+    setDebugMode(debug);
 
     this.wsClient = new WebSocketClient(
       {
@@ -48,20 +52,16 @@ export class Agent {
   }
 
   async start(): Promise<void> {
-    if (this.wsClient['debug']) {
-      console.log('[Agent] [DEBUG] ===== Starting Caribbean Agent =====');
-      console.log('[Agent] [DEBUG] Node ID:', this.nodeId);
-      console.log('[Agent] [DEBUG] Agent version: 0.1.0');
-    }
-    console.log(`[Agent] Starting node ${this.nodeId}`);
-    if (this.wsClient['debug']) {
-      console.log('[Agent] [DEBUG] Initiating WebSocket connection...');
-    }
+    logger.debug('===== Starting Caribbean Agent =====');
+    logger.debug(`Node ID: ${this.nodeId}`);
+    logger.debug('Agent version: 0.1.0');
+    logger.startup(`Starting node ${this.nodeId}`);
+    logger.debug('Initiating WebSocket connection...');
     this.wsClient.connect();
   }
 
   stop(): void {
-    console.log('[Agent] Stopping');
+    logger.startup('Stopping');
     this.wsClient.disconnect();
   }
 
