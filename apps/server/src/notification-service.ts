@@ -6,10 +6,12 @@ export class NotificationService {
   private database: DatabaseManager;
   private websocketHub: WebSocketHub;
   private previousGatewayStatus: Map<string, string> = new Map();
+  private debug: boolean;
 
-  constructor(database: DatabaseManager, websocketHub: WebSocketHub) {
+  constructor(database: DatabaseManager, websocketHub: WebSocketHub, debug: boolean = false) {
     this.database = database;
     this.websocketHub = websocketHub;
+    this.debug = debug;
   }
 
   /**
@@ -19,8 +21,9 @@ export class NotificationService {
   async checkAndNotify(nodeId: string, nodeName: string, currentStatus: string, connectedNodes: NodeInfo[]): Promise<void> {
     const previousStatus = this.previousGatewayStatus.get(nodeId);
 
-    // Debug logging
-    console.log(`[Notification] Status check for ${nodeName} (${nodeId}): previous='${previousStatus}', current='${currentStatus}'`);
+    if (this.debug) {
+      console.log(`[Notification] Status check for ${nodeName} (${nodeId}): previous='${previousStatus}', current='${currentStatus}'`);
+    }
 
     // Only notify if:
     // 1. Previous status was 'running'
@@ -53,39 +56,32 @@ export class NotificationService {
 
   private async sendShutdownNotifications(downNodeId: string, downNodeName: string, status: string, connectedNodes: NodeInfo[]): Promise<void> {
     try {
-      console.log(`[Notification] Checking for notification configurations...`);
       const notifications = await this.database.getAllNotifications();
 
-      console.log(`[Notification] Found ${notifications.length} notification configurations`);
-      console.log(`[Notification] Currently connected nodes: ${connectedNodes.map(n => `${n.name}(${n.id})`).join(', ')}`);
-
       if (notifications.length === 0) {
-        console.log('[Notification] No notification configurations found');
         return;
       }
 
       for (const notification of notifications) {
-        console.log(`[Notification] Processing notification ${notification.id}: channel=${notification.channel}, userId=${notification.userId}`);
-        console.log(`[Notification] Configured instance IDs: ${notification.instanceIds.join(', ')}`);
-
         // Find which instances from this notification are currently online
         const onlineInstances = connectedNodes.filter(n =>
           notification.instanceIds.includes(n.id) && n.connected
         );
 
-        console.log(`[Notification] Online instances for this notification: ${onlineInstances.map(n => n.name).join(', ') || 'none'}`);
-
         if (onlineInstances.length === 0) {
-          console.log(`[Notification] No online instances for notification ${notification.id} - skipping`);
+          if (this.debug) {
+            console.log(`[Notification] No online instances for notification ${notification.id} - skipping`);
+          }
           continue;
         }
 
         // Prepare the message with the node name
         const message = notification.messageTemplate.replace(/\$\{name\}/g, downNodeName);
 
-        console.log(`[Notification] Sending shutdown notification via ${notification.channel} to user ${notification.userId}`);
-        console.log(`[Notification] Message: ${message}`);
-        console.log(`[Notification] Online instances: ${onlineInstances.map(n => n.name).join(', ')}`);
+        console.log(`[Notification] Sending shutdown notification via ${notification.channel} to user ${notification.userId}: "${message}"`);
+        if (this.debug) {
+          console.log(`[Notification] Via instances: ${onlineInstances.map(n => n.name).join(', ')}`);
+        }
 
         // Send the message through each online instance
         for (const instance of onlineInstances) {
@@ -99,7 +95,9 @@ export class NotificationService {
                 message
               }
             );
-            console.log(`[Notification] Sent to instance ${instance.name} (${instance.id})`);
+            if (this.debug) {
+              console.log(`[Notification] Sent to instance ${instance.name} (${instance.id})`);
+            }
           } catch (error) {
             console.error(`[Notification] Failed to send to instance ${instance.name} (${instance.id}):`, error);
           }

@@ -21,21 +21,24 @@ export class WebSocketHub {
   private onNodeUpdate?: (nodeId: string) => Promise<void>;
   private commandResults: Map<string, { success: boolean; error?: string; data?: unknown; timestamp: string }> = new Map();
   private notificationService: NotificationService | null = null;
+  private debug: boolean;
 
   constructor(
     config: WebSocketServerConfig,
     nodeManager: NodeManager,
     database: DatabaseManager | null,
+    debug: boolean = false,
     onNodeUpdate?: (nodeId: string) => Promise<void>
   ) {
     this.config = config;
     this.nodeManager = nodeManager;
     this.database = database;
+    this.debug = debug;
     this.onNodeUpdate = onNodeUpdate;
 
     // Initialize notification service if database is available
     if (database) {
-      this.notificationService = new NotificationService(database, this);
+      this.notificationService = new NotificationService(database, this, debug);
     }
   }
 

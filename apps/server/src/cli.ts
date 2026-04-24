@@ -123,7 +123,7 @@ program
       config.websocket.port = parseInt(options.port, 10);
     }
 
-    const server = new CaribbeanServer(config);
+    const server = new CaribbeanServer(config, true);
     await server.start();
 
     process.on('SIGINT', () => {

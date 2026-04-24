@@ -36,9 +36,11 @@ export class CaribbeanServer {
   private apiServer: ApiServer | null = null;
   private database: DatabaseManager | null = null;
   private config: ServerConfig;
+  private debug: boolean;
 
-  constructor(config: ServerConfig) {
+  constructor(config: ServerConfig, debug: boolean = false) {
     this.config = config;
+    this.debug = debug;
     this.nodeManager = new NodeManager();
 
     // Create database first, before WebSocketHub (needed for notification service)
@@ -55,6 +57,7 @@ export class CaribbeanServer {
       },
       this.nodeManager,
       this.database,
+      this.debug,
       async (nodeId: string) => {
         if (this.database) {
           const node = this.nodeManager.getNode(nodeId);
