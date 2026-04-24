@@ -34,7 +34,7 @@ export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, g
       className={cn(
         "transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
         !node.connected && "opacity-60 grayscale-[0.5]",
-        selected && "ring-2 ring-[hsl(var(--primary))] shadow-lg"
+        selected && "border-2 border-[hsl(var(--primary))] shadow-lg"
       )}
     >
       <CardContent className="p-5">
