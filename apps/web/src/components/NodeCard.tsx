@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Checkbox } from "@/components/ui/Checkbox"
 import { Button } from "@/components/ui/Button"
-import { Cpu, MemoryStick, Clock, Settings, FileText, Monitor, Package } from "lucide-react"
+import { Cpu, MemoryStick, Clock, Settings, FileText, Monitor, Package, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "react-i18next"
 
@@ -13,6 +13,7 @@ interface NodeCardProps {
   onToggle: (nodeId: string) => void
   onViewConfig: (node: NodeInfo) => void
   onViewLogs: (node: NodeInfo) => void
+  onViewAgent: (node: NodeInfo) => void
   getGatewayStatus: (node: NodeInfo) => string
   formatUptime: (seconds: number) => string
   formatLastSeen: (date: Date) => string
@@ -26,7 +27,7 @@ function OpenClawGatewayStatusBadge({ status }: { status: string }) {
   )
 }
 
-export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, getGatewayStatus, formatUptime, formatLastSeen }: NodeCardProps) {
+export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, onViewAgent, getGatewayStatus, formatUptime, formatLastSeen }: NodeCardProps) {
   const { t } = useTranslation()
 
   return (
@@ -170,6 +171,16 @@ export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, g
           >
             <FileText className="h-4 w-4 mr-1" />
             {t('nodes.logs')}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={() => onViewAgent(node)}
+            disabled={!node.connected}
+          >
+            <Activity className="h-4 w-4 mr-1" />
+            Agent
           </Button>
         </div>
       </CardContent>

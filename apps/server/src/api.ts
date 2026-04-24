@@ -48,6 +48,7 @@ export class ApiServer {
   private getNotification?: (id: string) => Promise<Notification | null>;
   private saveNotification?: (notification: Notification) => Promise<void>;
   private deleteNotification?: (id: string) => Promise<void>;
+  private getNodeStatusHistory?: (nodeId: string, limit?: number) => Promise<any[]>;
 
   constructor(
     config: ApiServerConfig,
@@ -63,7 +64,8 @@ export class ApiServer {
     getAllNotifications?: () => Promise<Notification[]>,
     getNotification?: (id: string) => Promise<Notification | null>,
     saveNotification?: (notification: Notification) => Promise<void>,
-    deleteNotification?: (id: string) => Promise<void>
+    deleteNotification?: (id: string) => Promise<void>,
+    getNodeStatusHistory?: (nodeId: string, limit?: number) => Promise<any[]>
   ) {
     this.config = config;
     this.getNodeInfo = getNodeInfo;
@@ -79,6 +81,7 @@ export class ApiServer {
     this.getNotification = getNotification;
     this.saveNotification = saveNotification;
     this.deleteNotification = deleteNotification;
+    this.getNodeStatusHistory = getNodeStatusHistory;
     this.authEnabled = !!config.auth?.enabled && !!config.auth?.user;
     this.fastify = Fastify({ logger: false });
     this.fastify.register(cors, {
@@ -253,21 +256,44 @@ export class ApiServer {
       return node;
     });
 
-    this.fastify.get('/api/nodes/:id/status', async (request: any, reply: any) => {
+    this.fastify.get('/api/nodes/:id/status', async (request: any, reply:any) => {
       const { id } = request.params;
       const node = this.getNodeInfo(id);
-      
+
       if (!node) {
         reply.code(404).send({ error: 'Node not found' });
         return;
       }
-      
+
       return {
         nodeId: id,
         status: node.status,
         lastSeen: node.lastSeen,
         connected: node.connected
       };
+    });
+
+    this.fastify.get('/api/nodes/:id/status-history', async (request: any, reply: any) => {
+      const { id } = request.params;
+      const { limit } = request.query as { limit?: string };
+
+      if (!this.getNodeStatusHistory) {
+        reply.code(501).send({ error: 'Database not available' });
+        return;
+      }
+
+      try {
+        const limitNum = Number(limit || 10);
+        const history = await this.getNodeStatusHistory(id, limitNum);
+        return {
+          nodeId: id,
+          history,
+          count: history.length
+        };
+      } catch (error) {
+        logger.error('Failed to fetch status history:', error);
+        reply.code(500).send({ error: 'Failed to fetch status history' });
+      }
     });
 
     this.fastify.patch('/api/nodes/:id/name', async (request: any, reply: any) => {

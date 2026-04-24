@@ -7,6 +7,12 @@ import { createLogger } from '@openclaw-caribbean/shared';
 
 const logger = createLogger('Database');
 
+function extractGatewayStatus(node: NodeInfo): string {
+  if (!node.status?.openclawGateway) return 'unknown';
+  const gw = node.status.openclawGateway;
+  return typeof gw === 'string' ? gw : gw.status;
+}
+
 export interface DatabaseConfig {
   type: 'sqlite' | 'postgresql';
   path?: string;
@@ -230,7 +236,7 @@ export class DatabaseManager {
 
     // 只保留每个节点的最近 5 条历史记录
     if (node.status && statusJson) {
-      await this.saveNodeHistory(node.id, statusJson, node.openclawStatus || 'unknown');
+      await this.saveNodeHistory(node.id, statusJson, extractGatewayStatus(node));
     }
   }
 

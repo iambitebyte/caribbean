@@ -194,3 +194,8 @@ export async function testNotification(id: string): Promise<{ success: boolean; 
   const response = await apiClient.post(`/notifications/${id}/test`);
   return response.data;
 }
+
+export async function getNodeStatusHistory(nodeId: string, limit: number = 10): Promise<{ nodeId: string; history: any[]; count: number }> {
+  const response = await apiClient.get(`/nodes/${nodeId}/status-history?limit=${limit}`);
+  return response.data;
+}

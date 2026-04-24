@@ -131,6 +131,12 @@ export class CaribbeanServer {
           if (this.database) {
             await this.database.deleteNotification(id);
           }
+        },
+        async (nodeId: string, limit?: number) => {
+          if (this.database) {
+            return await this.database.getNodeStatusHistory(nodeId, limit);
+          }
+          return [];
         }
       );
     }

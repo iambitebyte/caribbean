@@ -14,9 +14,10 @@ import { NodeCard } from "@/components/NodeCard"
 import { ConfigDialog } from "@/components/ConfigDialog"
 import { LogsDialog } from "@/components/LogsDialog"
 import { LogoDialog } from "@/components/LogoDialog"
+import { AgentDialog } from "@/components/AgentDialog"
 import Settings from "@/components/Settings"
 import { RefreshCw, Server, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square, LayoutList, LayoutGrid, Settings as SettingsIcon, Monitor } from "lucide-react"
-import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName, sendNodeCommand, deleteNode, getNodeConfig, getNodeLogs } from "@/lib/api"
+import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName, sendNodeCommand, deleteNode, getNodeConfig, getNodeLogs, getNodeStatusHistory } from "@/lib/api"
 import { tokenManager } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
@@ -83,6 +84,11 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
   const [logsData, setLogsData] = useState<string>('')
   const [logsLoading, setLogsLoading] = useState(false)
   const [logsError, setLogsError] = useState<string | null>(null)
+  const [showAgentDialog, setShowAgentDialog] = useState(false)
+  const [agentNode, setAgentNode] = useState<NodeInfo | null>(null)
+  const [agentHistory, setAgentHistory] = useState<any[]>([])
+  const [agentLoading, setAgentLoading] = useState(false)
+  const [agentError, setAgentError] = useState<string | null>(null)
   const [showLogoDialog, setShowLogoDialog] = useState(false)
 
   const getGatewayStatus = useCallback((node: NodeInfo): string => {
@@ -275,6 +281,29 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
       setLogsError(error instanceof Error ? error.message : 'Failed to load logs')
     } finally {
       setLogsLoading(false)
+    }
+  }
+
+  const handleViewAgent = async (node: NodeInfo) => {
+    setAgentNode(node)
+    setShowAgentDialog(true)
+    setAgentLoading(true)
+    setAgentError(null)
+    setAgentHistory([])
+
+    try {
+      const result = await getNodeStatusHistory(node.id, 10)
+      // Parse the status JSON strings
+      const parsedHistory = result.history.map((entry: any) => ({
+        ...entry,
+        status: typeof entry.status === 'string' ? JSON.parse(entry.status) : entry.status,
+        timestamp: new Date(entry.timestamp)
+      }))
+      setAgentHistory(parsedHistory)
+    } catch (error) {
+      setAgentError(error instanceof Error ? error.message : 'Failed to load agent history')
+    } finally {
+      setAgentLoading(false)
     }
   }
 
@@ -722,6 +751,7 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                       onToggle={toggleNode}
                       onViewConfig={handleViewConfig}
                       onViewLogs={handleViewLogs}
+                      onViewAgent={handleViewAgent}
                       getGatewayStatus={getGatewayStatus}
                       formatUptime={formatUptime}
                       formatLastSeen={formatLastSeen}
@@ -757,6 +787,16 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
               logs={logsData}
               loading={logsLoading}
               error={logsError}
+            />
+
+            <AgentDialog
+              isOpen={showAgentDialog}
+              onClose={() => setShowAgentDialog(false)}
+              node={agentNode}
+              history={agentHistory}
+              loading={agentLoading}
+              error={agentError}
+              onRefresh={() => agentNode && handleViewAgent(agentNode)}
             />
 
             <LogoDialog
