@@ -13,7 +13,7 @@
     "instancesOnline": "Instances Online"
   },
   "nodes": {
-    "title": "Instance List",
+    "title": "Lobster Pond",
     "loading": "Loading...",
     "refreshing": "Refreshing data...",
     "noInstances": "No instance data",
