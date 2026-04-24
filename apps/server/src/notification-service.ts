@@ -19,6 +19,9 @@ export class NotificationService {
   async checkAndNotify(nodeId: string, nodeName: string, currentStatus: string, connectedNodes: NodeInfo[]): Promise<void> {
     const previousStatus = this.previousGatewayStatus.get(nodeId);
 
+    // Debug logging
+    console.log(`[Notification] Status check for ${nodeName} (${nodeId}): previous='${previousStatus}', current='${currentStatus}'`);
+
     // Only notify if:
     // 1. Previous status was 'running'
     // 2. Current status is 'unknown' or 'stopped'
@@ -50,7 +53,11 @@ export class NotificationService {
 
   private async sendShutdownNotifications(downNodeId: string, downNodeName: string, status: string, connectedNodes: NodeInfo[]): Promise<void> {
     try {
+      console.log(`[Notification] Checking for notification configurations...`);
       const notifications = await this.database.getAllNotifications();
+
+      console.log(`[Notification] Found ${notifications.length} notification configurations`);
+      console.log(`[Notification] Currently connected nodes: ${connectedNodes.map(n => `${n.name}(${n.id})`).join(', ')}`);
 
       if (notifications.length === 0) {
         console.log('[Notification] No notification configurations found');
@@ -58,13 +65,18 @@ export class NotificationService {
       }
 
       for (const notification of notifications) {
+        console.log(`[Notification] Processing notification ${notification.id}: channel=${notification.channel}, userId=${notification.userId}`);
+        console.log(`[Notification] Configured instance IDs: ${notification.instanceIds.join(', ')}`);
+
         // Find which instances from this notification are currently online
         const onlineInstances = connectedNodes.filter(n =>
           notification.instanceIds.includes(n.id) && n.connected
         );
 
+        console.log(`[Notification] Online instances for this notification: ${onlineInstances.map(n => n.name).join(', ') || 'none'}`);
+
         if (onlineInstances.length === 0) {
-          console.log(`[Notification] No online instances for notification ${notification.id}`);
+          console.log(`[Notification] No online instances for notification ${notification.id} - skipping`);
           continue;
         }
 
