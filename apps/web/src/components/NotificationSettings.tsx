@@ -165,7 +165,7 @@ export function NotificationSettings() {
 
   const handleOpenInstanceTest = (nodeId: string, nodeName: string, userId: string, channel: string) => {
     setInstanceTestDialog({ nodeId, nodeName, userId, channel })
-    setTestMessage(t('settings.notifications.testMessagePlaceholder'))
+    setTestMessage('')
   }
 
   const handleSendTestMessage = async () => {
