@@ -68,3 +68,29 @@ export interface NodeInfo {
   system?: SystemType;
   openclawVersion?: string;
 }
+
+export type NotificationChannel = 'telegram';
+
+export interface Notification {
+  id: string;
+  channel: NotificationChannel;
+  userId: string;
+  messageTemplate: string;
+  instanceIds: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateNotificationDto {
+  channel: NotificationChannel;
+  userId: string;
+  messageTemplate: string;
+  instanceIds: string[];
+}
+
+export interface UpdateNotificationDto {
+  channel?: NotificationChannel;
+  userId?: string;
+  messageTemplate?: string;
+  instanceIds?: string[];
+}

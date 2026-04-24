@@ -5,7 +5,7 @@ import cors from '@fastify/cors';
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { createRequire } from 'module';
-import type { NodeInfo } from '@openclaw-caribbean/shared';
+import type { NodeInfo, Notification, CreateNotificationDto } from '@openclaw-caribbean/shared';
 import { verifyToken, generateToken } from './auth.js';
 
 const require = createRequire(import.meta.url);
@@ -41,6 +41,10 @@ export class ApiServer {
   private deleteNode?: (nodeId: string) => Promise<void>;
   private authEnabled: boolean;
   private updateAgentToken?: (token: string | undefined) => void;
+  private getAllNotifications?: () => Promise<Notification[]>;
+  private getNotification?: (id: string) => Promise<Notification | null>;
+  private saveNotification?: (notification: Notification) => Promise<void>;
+  private deleteNotification?: (id: string) => Promise<void>;
 
   constructor(
     config: ApiServerConfig,
@@ -52,7 +56,11 @@ export class ApiServer {
     getDatabaseNodes?: () => Promise<NodeInfo[]>,
     updateNodeName?: (nodeId: string, name: string) => Promise<void>,
     deleteNode?: (nodeId: string) => Promise<void>,
-    updateAgentToken?: (token: string | undefined) => void
+    updateAgentToken?: (token: string | undefined) => void,
+    getAllNotifications?: () => Promise<Notification[]>,
+    getNotification?: (id: string) => Promise<Notification | null>,
+    saveNotification?: (notification: Notification) => Promise<void>,
+    deleteNotification?: (id: string) => Promise<void>
   ) {
     this.config = config;
     this.getNodeInfo = getNodeInfo;
@@ -64,6 +72,10 @@ export class ApiServer {
     this.updateNodeName = updateNodeName;
     this.deleteNode = deleteNode;
     this.updateAgentToken = updateAgentToken;
+    this.getAllNotifications = getAllNotifications;
+    this.getNotification = getNotification;
+    this.saveNotification = saveNotification;
+    this.deleteNotification = deleteNotification;
     this.authEnabled = !!config.auth?.enabled && !!config.auth?.user;
     this.fastify = Fastify({ logger: false });
     this.fastify.register(cors, {
@@ -352,6 +364,180 @@ export class ApiServer {
         connected: connected.length,
         disconnected: nodes.length - connected.length
       };
+    });
+
+    // Notification endpoints
+    this.fastify.get('/api/notifications', async () => {
+      if (!this.getAllNotifications) {
+        return { notifications: [], count: 0, error: 'Database not available' };
+      }
+
+      try {
+        const notifications = await this.getAllNotifications();
+        const nodes = await this.getDatabaseNodes?.() || [];
+
+        const notificationsWithNodes = notifications.map(notification => ({
+          ...notification,
+          nodes: nodes.filter(n => notification.instanceIds.includes(n.id))
+        }));
+
+        return {
+          notifications: notificationsWithNodes,
+          count: notificationsWithNodes.length
+        };
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+        return { notifications: [], count: 0, error: 'Failed to fetch notifications' };
+      }
+    });
+
+    this.fastify.get('/api/notifications/:id', async (request: any, reply: any) => {
+      if (!this.getNotification) {
+        reply.code(501).send({ error: 'Database not available' });
+        return;
+      }
+
+      const { id } = request.params;
+      const notification = await this.getNotification(id);
+
+      if (!notification) {
+        reply.code(404).send({ error: 'Notification not found' });
+        return;
+      }
+
+      const nodes = await this.getDatabaseNodes?.() || [];
+      return {
+        ...notification,
+        nodes: nodes.filter(n => notification.instanceIds.includes(n.id))
+      };
+    });
+
+    this.fastify.post('/api/notifications', async (request: any, reply: any) => {
+      if (!this.saveNotification) {
+        reply.code(501).send({ error: 'Database not available' });
+        return;
+      }
+
+      const { channel, userId, messageTemplate, instanceIds } = request.body;
+
+      if (!channel || !userId || !messageTemplate || !instanceIds) {
+        reply.code(400).send({ error: 'Missing required fields' });
+        return;
+      }
+
+      try {
+        const id = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        const notification: Notification = {
+          id,
+          channel,
+          userId,
+          messageTemplate,
+          instanceIds,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        await this.saveNotification(notification);
+
+        const nodes = await this.getDatabaseNodes?.() || [];
+        return {
+          success: true,
+          notification: {
+            ...notification,
+            nodes: nodes.filter(n => instanceIds.includes(n.id))
+          }
+        };
+      } catch (error) {
+        console.error('Failed to create notification:', error);
+        reply.code(500).send({ error: 'Failed to create notification' });
+      }
+    });
+
+    this.fastify.patch('/api/notifications/:id', async (request: any, reply: any) => {
+      if (!this.getNotification || !this.saveNotification) {
+        reply.code(501).send({ error: 'Database not available' });
+        return;
+      }
+
+      const { id } = request.params;
+      const { channel, userId, messageTemplate, instanceIds } = request.body;
+
+      try {
+        const existing = await this.getNotification(id);
+        if (!existing) {
+          reply.code(404).send({ error: 'Notification not found' });
+          return;
+        }
+
+        const updated: Notification = {
+          ...existing,
+          channel: channel ?? existing.channel,
+          userId: userId ?? existing.userId,
+          messageTemplate: messageTemplate ?? existing.messageTemplate,
+          instanceIds: instanceIds ?? existing.instanceIds,
+          updatedAt: new Date()
+        };
+
+        await this.saveNotification(updated);
+
+        const nodes = await this.getDatabaseNodes?.() || [];
+        return {
+          success: true,
+          notification: {
+            ...updated,
+            nodes: nodes.filter(n => updated.instanceIds.includes(n.id))
+          }
+        };
+      } catch (error) {
+        console.error('Failed to update notification:', error);
+        reply.code(500).send({ error: 'Failed to update notification' });
+      }
+    });
+
+    this.fastify.delete('/api/notifications/:id', async (request: any, reply: any) => {
+      if (!this.deleteNotification) {
+        reply.code(501).send({ error: 'Database not available' });
+        return;
+      }
+
+      const { id } = request.params;
+
+      try {
+        await this.deleteNotification(id);
+        reply.send({ success: true, notificationId: id });
+      } catch (error) {
+        console.error('Failed to delete notification:', error);
+        reply.code(500).send({ error: 'Failed to delete notification' });
+      }
+    });
+
+    this.fastify.post('/api/notifications/:id/test', async (request: any, reply: any) => {
+      if (!this.getNotification) {
+        reply.code(501).send({ error: 'Database not available' });
+        return;
+      }
+
+      const { id } = request.params;
+
+      try {
+        const notification = await this.getNotification(id);
+        if (!notification) {
+          reply.code(404).send({ error: 'Notification not found' });
+          return;
+        }
+
+        // TODO: Implement actual notification sending logic
+        // For now, return success as a placeholder
+        console.log('[Notification] Test notification would be sent:', notification);
+
+        return {
+          success: true,
+          message: 'Test notification sent (placeholder - implement actual sending logic)'
+        };
+      } catch (error) {
+        console.error('Failed to test notification:', error);
+        reply.code(500).send({ error: 'Failed to test notification' });
+      }
     });
   }
 

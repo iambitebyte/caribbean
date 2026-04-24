@@ -61,3 +61,30 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
+
+export type NotificationChannel = 'telegram';
+
+export interface Notification {
+  id: string;
+  channel: NotificationChannel;
+  userId: string;
+  messageTemplate: string;
+  instanceIds: string[];
+  nodes?: NodeInfo[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateNotificationDto {
+  channel: NotificationChannel;
+  userId: string;
+  messageTemplate: string;
+  instanceIds: string[];
+}
+
+export interface UpdateNotificationDto {
+  channel?: NotificationChannel;
+  userId?: string;
+  messageTemplate?: string;
+  instanceIds?: string[];
+}

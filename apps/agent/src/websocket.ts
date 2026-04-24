@@ -381,6 +381,24 @@ export class WebSocketClient {
         console.log('[Agent] Health check completed, ok:', healthData.ok);
         this.sendHeartbeat();
         return { health: healthData };
+      case 'message':
+        console.log('[Agent] Sending message via OpenClaw...');
+        const channel = params.channel as string;
+        const target = params.target as string;
+        const message = params.message as string;
+
+        if (!channel || !target || !message) {
+          throw new Error('Missing required parameters: channel, target, message');
+        }
+
+        console.log(`[Agent] Sending message to ${target} via ${channel}: "${message}"`);
+        const messageOutput = execSync(
+          `openclaw message send --channel ${channel} --target ${target} --message "${message}"`,
+          { encoding: 'utf-8', timeout: 30000 }
+        );
+        console.log('[Agent] Message sent successfully');
+        console.log('[Agent] Output:', messageOutput.trim());
+        return { success: true, output: messageOutput.trim() };
       default:
         throw new Error(`Unknown command: ${action}`);
     }

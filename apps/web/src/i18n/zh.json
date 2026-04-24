@@ -60,6 +60,10 @@
     "saveSuccess": "设置已保存",
     "saveError": "保存设置失败",
     "loadError": "加载设置失败",
+    "tabs": {
+      "security": "系统安全",
+      "notifications": "通知"
+    },
     "authSection": "认证设置",
     "webAuthEnabled": "启用 Web 登录认证",
     "webAuthDescription": "启用后，访问仪表盘需要用户名和密码",
@@ -76,7 +80,35 @@
     "agentToken": "Agent 令牌",
     "agentTokenPlaceholder": "输入 Agent 令牌（留空以禁用）",
     "agentTokenDescription": "Agent 连接时需要提供此令牌进行身份验证",
-    "tokenAlreadySet": "令牌已设置（留空以保持不变）"
+    "tokenAlreadySet": "令牌已设置（留空以保持不变）",
+    "notifications": {
+      "title": "通知设置",
+      "empty": "暂无通知配置",
+      "add": "添加通知",
+      "edit": "编辑",
+      "delete": "删除",
+      "deleteConfirm": "确定要删除此通知配置吗？",
+      "channel": "通知渠道",
+      "userId": "用户ID",
+      "userIdHint": "请输入 Telegram 数字ID（10位数字，不是用户名）",
+      "userIdInvalid": "用户ID必须是10位数字",
+      "instances": "发送通知的实例",
+      "instancesLabel": "通知实例：",
+      "noInstances": "无实例",
+      "messageTemplate": "消息模板",
+      "messageTemplateHint": "使用 ${name} 作为实例名称的占位符",
+      "test": "测试",
+      "testSuccess": "测试消息已发送，请去 Telegram Bot 验证",
+      "testFailed": "测试消息发送失败",
+      "testDialog": "发送测试消息",
+      "testDialogHint": "通过实例 {{name}} 发送测试消息到 Telegram 用户 {{userId}}",
+      "testMessageLabel": "测试消息",
+      "testMessagePlaceholder": "输入测试消息...",
+      "send": "发送",
+      "sending": "发送中...",
+      "saveSuccess": "通知配置已保存",
+      "selectInstances": "选择实例"
+    }
   },
   "errors": {
     "title": "连接错误",

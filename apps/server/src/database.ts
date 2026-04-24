@@ -1,5 +1,5 @@
 import { open, Database } from 'sqlite';
-import type { NodeInfo } from '@openclaw-caribbean/shared';
+import type { NodeInfo, Notification, CreateNotificationDto } from '@openclaw-caribbean/shared';
 import { existsSync, mkdirSync, readFileSync, readdirSync } from 'fs';
 import { dirname, join } from 'path';
 import sqlite3 from 'sqlite3';
@@ -79,6 +79,18 @@ export class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_nodes_openclaw_status ON nodes(openclaw_status);
       CREATE INDEX IF NOT EXISTS idx_status_history_node_id ON status_history(node_id);
       CREATE INDEX IF NOT EXISTS idx_status_history_timestamp ON status_history(timestamp);
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        channel TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        message_template TEXT NOT NULL,
+        instance_ids TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_notifications_channel ON notifications(channel);
     `);
 
     // 初始化后，清理过多的历史记录
@@ -124,6 +136,23 @@ export class DatabaseManager {
         version: 3,
         name: 'add_openclaw_version_column',
         up: `ALTER TABLE nodes ADD COLUMN openclaw_version TEXT;`
+      },
+      {
+        version: 4,
+        name: 'add_notifications_table',
+        up: `
+          CREATE TABLE IF NOT EXISTS notifications (
+            id TEXT PRIMARY KEY,
+            channel TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            message_template TEXT NOT NULL,
+            instance_ids TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_notifications_channel ON notifications(channel);
+        `
       }
     ];
   }
@@ -341,5 +370,80 @@ export class DatabaseManager {
       await this.db.close();
       this.db = null;
     }
+  }
+
+  // Notification methods
+
+  async saveNotification(notification: Notification & { createdAt?: Date; updatedAt?: Date }): Promise<void> {
+    if (!this.db) return;
+
+    const now = new Date().toISOString();
+    const instanceIdsJson = JSON.stringify(notification.instanceIds);
+
+    const existing = await this.db.get(
+      `SELECT id FROM notifications WHERE id = ?`,
+      [notification.id]
+    );
+
+    if (existing) {
+      await this.db.run(
+        `UPDATE notifications SET channel = ?, user_id = ?, message_template = ?, instance_ids = ?, updated_at = ? WHERE id = ?`,
+        [notification.channel, notification.userId, notification.messageTemplate, instanceIdsJson, now, notification.id]
+      );
+    } else {
+      await this.db.run(
+        `INSERT INTO notifications (id, channel, user_id, message_template, instance_ids, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [notification.id, notification.channel, notification.userId, notification.messageTemplate, instanceIdsJson, now, now]
+      );
+    }
+  }
+
+  async getAllNotifications(): Promise<Notification[]> {
+    if (!this.db) return [];
+
+    const rows = await this.db.all(
+      `SELECT * FROM notifications ORDER BY created_at DESC`
+    ) as any[];
+
+    return rows.map(row => ({
+      id: row.id,
+      channel: row.channel,
+      userId: row.user_id,
+      messageTemplate: row.message_template,
+      instanceIds: JSON.parse(row.instance_ids || '[]'),
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at)
+    }));
+  }
+
+  async getNotification(id: string): Promise<Notification | null> {
+    if (!this.db) return null;
+
+    const row = await this.db.get(
+      `SELECT * FROM notifications WHERE id = ?`,
+      [id]
+    ) as any;
+
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      channel: row.channel,
+      userId: row.user_id,
+      messageTemplate: row.message_template,
+      instanceIds: JSON.parse(row.instance_ids || '[]'),
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at)
+    };
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    if (!this.db) return;
+
+    await this.db.run(
+      `DELETE FROM notifications WHERE id = ?`,
+      [id]
+    );
   }
 }

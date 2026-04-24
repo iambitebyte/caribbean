@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs"
+import { NotificationSettings } from "@/components/NotificationSettings"
 import { ArrowLeft, Settings as SettingsIcon, Save, Check, Eye, EyeOff } from "lucide-react"
 import { fetchSettings, updateAuthSettings } from "@/lib/api"
 import { tokenManager } from "@/lib/auth"
@@ -205,121 +207,134 @@ export default function Settings() {
             </motion.div>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('settings.authSection')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">{t('settings.webAuthEnabled')}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{t('settings.webAuthDescription')}</p>
-                </div>
-                <button
-                  onClick={() => setSettings(prev => ({ ...prev, auth: { ...prev.auth, enabled: !prev.auth.enabled } }))}
-                  className={cn(
-                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                    settings.auth.enabled ? "bg-primary" : "bg-muted"
+          <Tabs defaultValue="security">
+            <TabsList>
+              <TabsTrigger value="security">{t('settings.tabs.security')}</TabsTrigger>
+              <TabsTrigger value="notifications">{t('settings.tabs.notifications')}</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="security" className="space-y-6 mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('settings.authSection')}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">{t('settings.webAuthEnabled')}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{t('settings.webAuthDescription')}</p>
+                    </div>
+                    <button
+                      onClick={() => setSettings(prev => ({ ...prev, auth: { ...prev.auth, enabled: !prev.auth.enabled } }))}
+                      className={cn(
+                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                        settings.auth.enabled ? "bg-primary" : "bg-muted"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                          settings.auth.enabled ? "translate-x-6" : "translate-x-1"
+                        )}
+                      />
+                    </button>
+                  </div>
+
+                  {settings.auth.enabled && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-4 pt-4 border-t"
+                    >
+                      <div>
+                        <label className="block text-sm font-medium mb-2">{t('settings.username')}</label>
+                        <input
+                          type="text"
+                          value={settings.auth.username}
+                          onChange={(e) => setSettings(prev => ({ ...prev, auth: { ...prev.auth, username: e.target.value } }))}
+                          className="w-full px-3 py-2 border rounded-md bg-background"
+                          placeholder={t('settings.usernamePlaceholder')}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">{t('settings.password')}</label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={settings.auth.password}
+                            onChange={(e) => setSettings(prev => ({ ...prev, auth: { ...prev.auth, password: e.target.value } }))}
+                            className="w-full px-3 py-2 border rounded-md bg-background pr-10"
+                            placeholder={t('settings.passwordPlaceholder')}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-2">{t('settings.confirmPassword')}</label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            value={settings.auth.confirmPassword}
+                            onChange={(e) => setSettings(prev => ({ ...prev, auth: { ...prev.auth, confirmPassword: e.target.value } }))}
+                            className="w-full px-3 py-2 border rounded-md bg-background pr-10"
+                            placeholder={t('settings.confirmPasswordPlaceholder')}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          >
+                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
                   )}
-                >
-                  <span
-                    className={cn(
-                      "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                      settings.auth.enabled ? "translate-x-6" : "translate-x-1"
-                    )}
-                  />
-                </button>
-              </div>
+                </CardContent>
+              </Card>
 
-              {settings.auth.enabled && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-4 pt-4 border-t"
-                >
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('settings.agentAuthSection')}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">{t('settings.username')}</label>
-                    <input
-                      type="text"
-                      value={settings.auth.username}
-                      onChange={(e) => setSettings(prev => ({ ...prev, auth: { ...prev.auth, username: e.target.value } }))}
-                      className="w-full px-3 py-2 border rounded-md bg-background"
-                      placeholder={t('settings.usernamePlaceholder')}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">{t('settings.password')}</label>
+                    <label className="block text-sm font-medium mb-2">{t('settings.agentToken')}</label>
                     <div className="relative">
                       <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={settings.auth.password}
-                        onChange={(e) => setSettings(prev => ({ ...prev, auth: { ...prev.auth, password: e.target.value } }))}
+                        type={showAgentToken ? 'text' : 'password'}
+                        value={settings.auth.agentToken}
+                        onChange={(e) => setSettings(prev => ({ ...prev, auth: { ...prev.auth, agentToken: e.target.value } }))}
                         className="w-full px-3 py-2 border rounded-md bg-background pr-10"
-                        placeholder={t('settings.passwordPlaceholder')}
+                        placeholder={currentSettings.auth.agentTokenSet ? t('settings.tokenAlreadySet') : t('settings.agentTokenPlaceholder')}
                       />
                       <button
                         type="button"
-                        onClick={() => setShowPassword(!showPassword)}
+                        onClick={() => setShowAgentToken(!showAgentToken)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showAgentToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    <p className="text-sm text-muted-foreground mt-2">{t('settings.agentTokenDescription')}</p>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">{t('settings.confirmPassword')}</label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        value={settings.auth.confirmPassword}
-                        onChange={(e) => setSettings(prev => ({ ...prev, auth: { ...prev.auth, confirmPassword: e.target.value } }))}
-                        className="w-full px-3 py-2 border rounded-md bg-background pr-10"
-                        placeholder={t('settings.confirmPasswordPlaceholder')}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>{t('settings.agentAuthSection')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">{t('settings.agentToken')}</label>
-                <div className="relative">
-                  <input
-                    type={showAgentToken ? 'text' : 'password'}
-                    value={settings.auth.agentToken}
-                    onChange={(e) => setSettings(prev => ({ ...prev, auth: { ...prev.auth, agentToken: e.target.value } }))}
-                    className="w-full px-3 py-2 border rounded-md bg-background pr-10"
-                    placeholder={currentSettings.auth.agentTokenSet ? t('settings.tokenAlreadySet') : t('settings.agentTokenPlaceholder')}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowAgentToken(!showAgentToken)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showAgentToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">{t('settings.agentTokenDescription')}</p>
-              </div>
-            </CardContent>
-          </Card>
+            <TabsContent value="notifications">
+              <NotificationSettings />
+            </TabsContent>
+          </Tabs>
         </motion.div>
       </main>
     </div>

@@ -60,6 +60,10 @@
     "saveSuccess": "Settings saved successfully",
     "saveError": "Failed to save settings",
     "loadError": "Failed to load settings",
+    "tabs": {
+      "security": "System Security",
+      "notifications": "Notifications"
+    },
     "authSection": "Authentication Settings",
     "webAuthEnabled": "Enable Web Login Authentication",
     "webAuthDescription": "When enabled, users must provide username and password to access the dashboard",
@@ -76,7 +80,35 @@
     "agentToken": "Agent Token",
     "agentTokenPlaceholder": "Enter agent token (leave empty to disable)",
     "agentTokenDescription": "Agents must provide this token when connecting to the server",
-    "tokenAlreadySet": "Token is already set (leave empty to keep unchanged)"
+    "tokenAlreadySet": "Token is already set (leave empty to keep unchanged)",
+    "notifications": {
+      "title": "Notification Settings",
+      "empty": "No notification configurations",
+      "add": "Add Notification",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure you want to delete this notification configuration?",
+      "channel": "Notification Channel",
+      "userId": "User ID",
+      "userIdHint": "Enter Telegram numeric ID (10 digits, not username)",
+      "userIdInvalid": "User ID must be 10 digits",
+      "instances": "Instances to Notify",
+      "instancesLabel": "Instances:",
+      "noInstances": "No instances",
+      "messageTemplate": "Message Template",
+      "messageTemplateHint": "Use ${name} as placeholder for instance name",
+      "test": "Test",
+      "testSuccess": "Test message sent, please verify on Telegram Bot",
+      "testFailed": "Failed to send test message",
+      "testDialog": "Send Test Message",
+      "testDialogHint": "Send test message via instance {{name}} to Telegram user {{userId}}",
+      "testMessageLabel": "Test message",
+      "testMessagePlaceholder": "Enter test message...",
+      "send": "Send",
+      "sending": "Sending...",
+      "saveSuccess": "Notification configuration saved",
+      "selectInstances": "Select instances"
+    }
   },
   "errors": {
     "title": "Connection Error",

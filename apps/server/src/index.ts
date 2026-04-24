@@ -100,7 +100,29 @@ export class CaribbeanServer {
             this.nodeManager.removeNode(nodeId);
           }
         },
-        (token: string | undefined) => this.websocketHub.updateAgentToken(token)
+        (token: string | undefined) => this.websocketHub.updateAgentToken(token),
+        async () => {
+          if (this.database) {
+            return await this.database.getAllNotifications();
+          }
+          return [];
+        },
+        async (id: string) => {
+          if (this.database) {
+            return await this.database.getNotification(id);
+          }
+          return null;
+        },
+        async (notification) => {
+          if (this.database) {
+            await this.database.saveNotification(notification);
+          }
+        },
+        async (id: string) => {
+          if (this.database) {
+            await this.database.deleteNotification(id);
+          }
+        }
       );
     }
   }

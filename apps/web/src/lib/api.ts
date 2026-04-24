@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { NodeInfo } from "@/types"
+import { NodeInfo, Notification, CreateNotificationDto, UpdateNotificationDto } from "@/types"
 import { tokenManager } from './auth';
 
 const API_BASE_URL = "/api";
@@ -168,5 +168,29 @@ export async function updateAuthSettings(data: {
 
 export async function fetchVersion(): Promise<{ version: string }> {
   const response = await apiClient.get('/version');
+  return response.data;
+}
+
+export async function fetchNotifications(): Promise<Notification[]> {
+  const response = await apiClient.get('/notifications');
+  return response.data.notifications || [];
+}
+
+export async function createNotification(data: CreateNotificationDto): Promise<Notification> {
+  const response = await apiClient.post('/notifications', data);
+  return response.data.notification;
+}
+
+export async function updateNotification(id: string, data: UpdateNotificationDto): Promise<Notification> {
+  const response = await apiClient.patch(`/notifications/${id}`, data);
+  return response.data.notification;
+}
+
+export async function deleteNotification(id: string): Promise<void> {
+  await apiClient.delete(`/notifications/${id}`);
+}
+
+export async function testNotification(id: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  const response = await apiClient.post(`/notifications/${id}/test`);
   return response.data;
 }
