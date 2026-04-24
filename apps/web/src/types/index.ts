@@ -10,6 +10,7 @@ export interface NodeInfo {
   openclawStatus?: string;
   clientIp?: string;
   system?: SystemType;
+  openclawVersion?: string;
 }
 
 export interface OpenClawGatewayStatus {
@@ -53,6 +54,7 @@ export interface NodeStatus {
   };
   skills: string[];
   openclawGateway?: string | OpenClawGatewayStatus;
+  openclawVersion?: string;
 }
 
 export interface ApiResponse<T> {

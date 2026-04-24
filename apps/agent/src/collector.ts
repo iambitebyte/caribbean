@@ -47,7 +47,8 @@ export class StatusCollector {
       cpu: this.collectCpu(),
       agents: this.collectAgents(),
       skills: this.collectSkills(),
-      openclawGateway: this.collectOpenClawGatewayStatus()
+      openclawGateway: this.collectOpenClawGatewayStatus(),
+      openclawVersion: this.collectOpenClawVersion()
     };
   }
 
@@ -341,5 +342,23 @@ export class StatusCollector {
     }
 
     return troubles;
+  }
+
+  private collectOpenClawVersion(): string {
+    try {
+      const versionOutput = execSync('openclaw -v', {
+        encoding: 'utf-8',
+        timeout: 5000
+      });
+
+      // Parse version from output like "openclaw version 2026.3.2" or "2026.3.2"
+      const versionMatch = versionOutput.match(/(\d+\.\d+\.\d+)/);
+      if (versionMatch) {
+        return versionMatch[1];
+      }
+      return 'unknown';
+    } catch {
+      return 'unknown';
+    }
   }
 }

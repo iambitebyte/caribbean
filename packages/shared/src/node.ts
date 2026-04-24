@@ -35,6 +35,7 @@ export interface NodeStatus {
   agents: AgentsInfo;
   skills: string[];
   openclawGateway?: string | OpenClawGatewayStatus;
+  openclawVersion?: string;
 }
 
 export interface MemoryInfo {
@@ -65,4 +66,5 @@ export interface NodeInfo {
   openclawStatus?: string;
   clientIp?: string;
   system?: SystemType;
+  openclawVersion?: string;
 }

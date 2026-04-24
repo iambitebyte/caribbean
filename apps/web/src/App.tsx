@@ -15,7 +15,7 @@ import { ConfigDialog } from "@/components/ConfigDialog"
 import { LogsDialog } from "@/components/LogsDialog"
 import { LogoDialog } from "@/components/LogoDialog"
 import Settings from "@/components/Settings"
-import { Cpu, MemoryStick, RefreshCw, Server, Clock, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square, LayoutList, LayoutGrid, Settings as SettingsIcon, Monitor } from "lucide-react"
+import { RefreshCw, Server, Pencil, LogOut, AlertCircle, ChevronDown, Play, Square, LayoutList, LayoutGrid, Settings as SettingsIcon, Monitor } from "lucide-react"
 import { fetchAuthStatus, fetchDatabaseNodes, fetchStats, updateNodeName, sendNodeCommand, deleteNode, getNodeConfig, getNodeLogs } from "@/lib/api"
 import { tokenManager } from "@/lib/auth"
 import { cn } from "@/lib/utils"
@@ -602,12 +602,10 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                           <TableHead>{t('nodes.id')}</TableHead>
                           <TableHead>{t('nodes.clientIp')}</TableHead>
                           <TableHead>{t('nodes.system')}</TableHead>
-                          <TableHead>{t('nodes.connectionStatus')}</TableHead>
+                          <TableHead>OpenClaw</TableHead>
                           <TableHead>Gateway</TableHead>
+                          <TableHead>{t('nodes.connectionStatus')}</TableHead>
                           <TableHead>{t('nodes.lastSeen')}</TableHead>
-                          <TableHead>{t('nodes.cpu')}</TableHead>
-                          <TableHead>{t('nodes.memory')}</TableHead>
-                          <TableHead>{t('nodes.uptime')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -686,6 +684,13 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                               </Badge>
                             </TableCell>
                             <TableCell>
+                              {node.openclawVersion || node.status?.openclawVersion ? (
+                                <span className="text-muted-foreground text-sm">{node.openclawVersion || node.status?.openclawVersion}</span>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
                               {node.connected ? (
                                 node.status?.openclawGateway ? (
                                   <OpenClawGatewayStatusBadge status={node.status.openclawGateway} />
@@ -700,36 +705,6 @@ function AppContent({ authEnabled }: { authEnabled: boolean }) {
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm">
                               {formatLastSeen(node.lastSeen)}
-                            </TableCell>
-                            <TableCell>
-                              {node.connected && node.status?.cpu ? (
-                                <div className="flex items-center gap-2">
-                                  <Cpu className="h-4 w-4 text-muted-foreground" />
-                                  <span>{node.status.cpu.percent}%</span>
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {node.connected && node.status?.memory ? (
-                                <div className="flex items-center gap-2" title={`${node.status.memory.used}GB / ${node.status.memory.total}GB`}>
-                                  <MemoryStick className="h-4 w-4 text-muted-foreground" />
-                                  <span>{node.status.memory.percent}%</span>
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {node.connected && node.status?.uptime ? (
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-4 w-4 text-muted-foreground" />
-                                  <span>{formatUptime(node.status.uptime)}</span>
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
                             </TableCell>
                           </TableRow>
                         ))}

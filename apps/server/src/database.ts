@@ -119,6 +119,11 @@ export class DatabaseManager {
         version: 2,
         name: 'add_system_column',
         up: `ALTER TABLE nodes ADD COLUMN system TEXT;`
+      },
+      {
+        version: 3,
+        name: 'add_openclaw_version_column',
+        up: `ALTER TABLE nodes ADD COLUMN openclaw_version TEXT;`
       }
     ];
   }
@@ -156,7 +161,7 @@ export class DatabaseManager {
     if (existingNode) {
       // Update existing node - only update necessary fields, preserve name
       await this.db.run(
-        `UPDATE nodes SET tags = ?, connected = ?, last_seen = ?, status = ?, openclaw_status = ?, client_ip = ?, system = ?, updated_at = ? WHERE id = ?`,
+        `UPDATE nodes SET tags = ?, connected = ?, last_seen = ?, status = ?, openclaw_status = ?, client_ip = ?, system = ?, openclaw_version = ?, updated_at = ? WHERE id = ?`,
         [
           tagsJson,
           node.connected ? 1 : 0,
@@ -165,6 +170,7 @@ export class DatabaseManager {
           node.openclawStatus || 'unknown',
           node.clientIp || null,
           node.system || null,
+          node.status?.openclawVersion || node.openclawVersion || null,
           now,
           node.id
         ]
@@ -172,8 +178,8 @@ export class DatabaseManager {
     } else {
       // Insert new node
       await this.db.run(
-        `INSERT INTO nodes (id, name, tags, connected, last_seen, status, openclaw_status, client_ip, system, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO nodes (id, name, tags, connected, last_seen, status, openclaw_status, client_ip, system, openclaw_version, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           node.id,
           node.name,
@@ -184,6 +190,7 @@ export class DatabaseManager {
           node.openclawStatus || 'unknown',
           node.clientIp || null,
           node.system || null,
+          node.status?.openclawVersion || node.openclawVersion || null,
           now
         ]
       );
@@ -324,7 +331,8 @@ export class DatabaseManager {
       status: row.status ? JSON.parse(row.status) : undefined,
       openclawStatus: row.openclaw_status || 'unknown',
       clientIp: row.client_ip || undefined,
-      system: row.system || undefined
+      system: row.system || undefined,
+      openclawVersion: row.openclaw_version || undefined
     };
   }
 

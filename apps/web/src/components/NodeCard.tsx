@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Checkbox } from "@/components/ui/Checkbox"
 import { Button } from "@/components/ui/Button"
-import { Cpu, MemoryStick, Clock, Settings, FileText, Monitor } from "lucide-react"
+import { Cpu, MemoryStick, Clock, Settings, FileText, Monitor, Package } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "react-i18next"
 
@@ -87,6 +87,17 @@ export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, g
             )}
           </div>
           <div className="bg-muted/30 rounded-lg p-2">
+            <p className="text-xs text-muted-foreground mb-1">OpenClaw</p>
+            {node.openclawVersion || node.status?.openclawVersion ? (
+              <div className="flex items-center gap-1">
+                <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm font-medium">{node.openclawVersion || node.status?.openclawVersion}</span>
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">-</span>
+            )}
+          </div>
+          <div className="bg-muted/30 rounded-lg p-2">
             <p className="text-xs text-muted-foreground mb-1">Gateway</p>
             {node.connected ? (
               node.status?.openclawGateway ? (
@@ -99,10 +110,6 @@ export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, g
                 unknown
               </Badge>
             )}
-          </div>
-          <div className="bg-muted/30 rounded-lg p-2">
-            <p className="text-xs text-muted-foreground mb-1">{t('nodes.lastSeen')}</p>
-            <p className="text-sm font-medium">{formatLastSeen(node.lastSeen)}</p>
           </div>
           <div className="bg-muted/30 rounded-lg p-2">
             <p className="text-xs text-muted-foreground mb-1">{t('nodes.cpu')}</p>
@@ -136,6 +143,10 @@ export function NodeCard({ node, selected, onToggle, onViewConfig, onViewLogs, g
             ) : (
               <span className="text-sm text-muted-foreground">-</span>
             )}
+          </div>
+          <div className="bg-muted/30 rounded-lg p-2 col-span-2">
+            <p className="text-xs text-muted-foreground mb-1">{t('nodes.lastSeen')}</p>
+            <p className="text-sm font-medium">{formatLastSeen(node.lastSeen)}</p>
           </div>
         </div>
 
