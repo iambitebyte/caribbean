@@ -584,9 +584,10 @@ export class ApiServer {
     });
 
     this.fastify.get('/*', async (request: any, reply: any) => {
-      const filePath = join(this.config.webDistPath!, request.url.replace(/^\//, ''));
-      
-      if (existsSync(filePath)) {
+      const urlPath = request.url.replace(/^\//, '').split('?')[0];
+      const filePath = join(this.config.webDistPath!, urlPath);
+
+      if (urlPath && existsSync(filePath)) {
         const ext = filePath.split('.').pop();
         const contentTypes: Record<string, string> = {
           'html': 'text/html',
@@ -603,8 +604,10 @@ export class ApiServer {
           'ttf': 'font/ttf',
           'eot': 'application/vnd.ms-fontobject'
         };
-        
+
         reply.type(contentTypes[ext || 'html'] || 'application/octet-stream').send(readFileSync(filePath));
+      } else if (existsSync(indexPath)) {
+        reply.type('text/html').send(readFileSync(indexPath, 'utf-8'));
       } else {
         reply.code(404).send({ error: 'File not found' });
       }
