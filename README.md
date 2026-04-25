@@ -93,11 +93,15 @@ WebSocket 地址：ws://localhost:8080
 在 OpenClaw 节点上：
 
 ```bash
-# 初始化配置
-caribbean-agent init --server ws://your-server:8080
+# 初始化配置（注意 /ws/agent 路径是必须的）
+caribbean-agent init --server ws://your-server:8080/ws/agent
 
 # 带认证令牌初始化
-caribbean-agent init --server ws://your-server:8080 --token your-secret-token
+caribbean-agent init --server ws://your-server:8080/ws/agent --token your-secret-token
+
+# 通过 Nginx 反向代理（示例）
+caribbean-agent init --server http://your-domain/ws/agent
+```
 
 # 启动 Agent
 caribbean-agent start
