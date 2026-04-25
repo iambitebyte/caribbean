@@ -19,6 +19,8 @@
     "clean": "rm -rf dist",
     "build:web": "cd ../web && pnpm run build && rm -rf ../server/dist/web && mkdir -p ../server/dist/web && cp -r dist/* ../server/dist/web/",
     "build:all": "pnpm run build:web && pnpm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prepublishOnly": "pnpm run build:all"
   },
   "dependencies": {

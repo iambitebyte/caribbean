@@ -17,6 +17,8 @@
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
     "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {

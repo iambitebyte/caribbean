@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "pnpm --filter \"./apps/**\" dev",
     "build": "pnpm --filter './packages/**' build && pnpm --filter './apps/**' build",
-    "test": "pnpm --filter \"./apps/**\" test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "pnpm --filter \"./apps/**\" lint",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
     "init": "pnpm --filter @openclaw-caribbean/server exec caribbean-server init",
@@ -42,7 +44,9 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.2",
     "@changesets/cli": "^2.30.0",
-    "tsx": "^4.21.0"
+    "@vitest/coverage-v8": "4.1.5",
+    "tsx": "^4.21.0",
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "@openclaw-caribbean/agent": "workspace:^",
