@@ -122,6 +122,19 @@ pnpm server:start/stop/status/logs
 pnpm agent:start/stop/status/logs
 ```
 
+### Testing
+
+```bash
+pnpm test                    # Run all tests
+pnpm test:watch              # Watch mode
+pnpm test:coverage           # Coverage report
+cd packages/shared && pnpm test  # Run single workspace
+```
+
+- Framework: Vitest with globals enabled
+- Test files: `src/__tests__/*.test.ts`
+- Config: `vitest.config.ts` (root)
+
 ### Endpoints
 
 - Production: `http://localhost:3000` (API + Web UI), `ws://localhost:8080/ws/agent`

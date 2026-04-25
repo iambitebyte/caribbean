@@ -138,14 +138,47 @@ Production mode endpoints:
 
 ## Testing
 
+本项目使用 [Vitest](https://vitest.dev/) 作为测试框架。
+
+### 运行测试
+
 ```bash
-# Unit tests
+# 运行所有测试
 pnpm test
 
-# E2E tests
-pnpm test:e2e
+# 监听模式（开发时使用）
+pnpm test:watch
 
-# Lint
+# 生成覆盖率报告
+pnpm test:coverage
+
+# 运行单个工作区的测试
+cd packages/shared && pnpm test
+cd apps/server && pnpm test
+```
+
+### 编写测试
+
+- 测试文件放在 `src/__tests__/` 目录下，命名为 `*.test.ts`
+- 使用 Vitest 全局 API（`describe`、`it`、`expect`、`vi`），无需手动导入
+- 测试纯函数、工具类、状态管理等无副作用的模块
+- 对于依赖外部服务（文件系统、网络）的模块，使用 `vi.mock()` 或临时目录
+
+### 测试结构
+
+```
+packages/shared/src/__tests__/
+  ├── logger.test.ts      # Logger 工具类测试
+  └── daemon.test.ts      # 进程管理工具测试
+
+apps/server/src/__tests__/
+  ├── auth.test.ts        # JWT 认证测试
+  └── node-manager.test.ts # 节点管理器测试
+```
+
+### Lint
+
+```bash
 pnpm lint
 ```
 
